@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{9DCB4511-9886-46FB-9CA1-C0DAE034A68A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeStore.JsonFS.Test", "test\TreeStore.JsonFS.Test\TreeStore.JsonFS.Test.csproj", "{407241AF-4349-4FDD-961F-831FF93DAC97}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B06158DD-BBCB-4858-BEF6-A5B7B2938871}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeStore.JsonFS", "src\TreeStore.JsonFS\TreeStore.JsonFS.csproj", "{C73FD3AD-B03E-437C-BE88-2207B3314590}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{407241AF-4349-4FDD-961F-831FF93DAC97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{407241AF-4349-4FDD-961F-831FF93DAC97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{407241AF-4349-4FDD-961F-831FF93DAC97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{407241AF-4349-4FDD-961F-831FF93DAC97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C73FD3AD-B03E-437C-BE88-2207B3314590}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C73FD3AD-B03E-437C-BE88-2207B3314590}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C73FD3AD-B03E-437C-BE88-2207B3314590}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C73FD3AD-B03E-437C-BE88-2207B3314590}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{407241AF-4349-4FDD-961F-831FF93DAC97} = {9DCB4511-9886-46FB-9CA1-C0DAE034A68A}
+		{C73FD3AD-B03E-437C-BE88-2207B3314590} = {B06158DD-BBCB-4858-BEF6-A5B7B2938871}
+	EndGlobalSection
+EndGlobal
