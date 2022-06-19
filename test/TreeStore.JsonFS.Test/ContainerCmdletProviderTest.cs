@@ -314,7 +314,8 @@ namespace TreeStore.JsonFS.Test
             // ARRANGE
             var child1 = new JObject()
             {
-                ["child1"] = new JObject()
+                ["property"] = new JValue(1),
+                ["grandchild"] = new JObject()
             };
 
             var root = this.ArrangeFileSystem(new JObject
@@ -324,6 +325,7 @@ namespace TreeStore.JsonFS.Test
             });
 
             // ACT
+            // copy child1 under child2
             var _ = this.PowerShell.AddCommand("Copy-Item")
                 .AddParameter("Path", @"test:\child1")
                 .AddParameter("Destination", @"test:\child2")
@@ -332,116 +334,61 @@ namespace TreeStore.JsonFS.Test
 
             // ASSERT
             Assert.False(this.PowerShell.HadErrors);
-            Assert.True(root.TryGetValue("child2", out var child2token));
 
-            var child2object = child2token as JObject;
+            // child1 is still there
+            Assert.NotNull(root.ChildObject("child1"));
 
-            Assert.True(child2object.TryGetValue("child1", out var copy_child1token));
-            Assert.NotNull(copy_child1token!);
-            Assert.NotSame(child1, copy_child1token);
+            // child2 has a new child: child1
+            Assert.NotNull(root.ChildObject("child2").ChildObject("child1"));
+
+            // copy is shallow and contains the property but not the child node
+            Assert.True(root.ChildObject("child2").ChildObject("child1").TryGetValue("property", out var _));
+            Assert.False(root.ChildObject("child2").ChildObject("child1").TryGetValue("grandchild", out var _));
         }
 
-        //[Fact]
-        //public void Powershell_copy_child_with_new_name()
-        //{
-        //    // ARRANGE
-        //    var child1 = new JObject()
-        //    {
-        //        ["child1"] = new JObject()
-        //    };
+        [Fact]
+        public void Powershell_copies_child_item_with_new_name_and_parent_recursive()
+        {
+            // ARRANGE
+            var child1 = new JObject()
+            {
+                ["property"] = new JValue(1),
+                ["grandchild"] = new JObject()
+                {
+                    ["property2"] = new JValue(2)
+                }
+            };
 
-        //    var root = this.ArrangeFileSystem(new JObject
-        //    {
-        //        ["child1"] = child1,
-        //        ["child2"] = new JObject()
-        //    });
+            var root = this.ArrangeFileSystem(new JObject
+            {
+                ["child1"] = child1,
+                ["child2"] = new JObject()
+            });
 
-        //    // ACT
-        //    var _ = this.PowerShell.AddCommand("Copy-Item")
-        //        .AddParameter("Path", @"test:\child1")
-        //        .AddParameter("Destination", @"test:\child2\newname")
-        //        .Invoke()
-        //        .ToArray();
+            // ACT
+            // copy child1 under child2
+            var _ = this.PowerShell.AddCommand("Copy-Item")
+                .AddParameter("Path", @"test:\child1")
+                .AddParameter("Destination", @"test:\child2")
+                .AddParameter("Recurse")
+                .Invoke()
+                .ToArray();
 
-        //    // ASSERT
-        //    Assert.False(this.PowerShell.HadErrors);
-        //    Assert.True(root.TryGetValue<JObject>("child2", out var child2));
-        //    Assert.True(child2!.TryGetValue<JObject>("newname", out var copy_child1));
-        //    Assert.NotNull(copy_child1!);
-        //    Assert.NotSame(child1, copy_child1);
-        //}
+            // ASSERT
+            Assert.False(this.PowerShell.HadErrors);
 
-        //[Fact]
-        //public void Powershell_copies_child_recursive()
-        //{
-        //    // ARRANGE
-        //    var child1 = new JObject()
-        //    {
-        //        ["grandchild"] = new JObject(),
-        //        ["data"] = 1,
-        //    };
+            // child1 is still there
+            Assert.NotNull(root.ChildObject("child1"));
 
-        //    var root = this.ArrangeFileSystem(new JObject
-        //    {
-        //        ["child1"] = child1,
-        //        ["child2"] = new JObject()
-        //    });
+            // child2 has a new child: child1
+            Assert.NotNull(root.ChildObject("child2").ChildObject("child1"));
 
-        //    // ACT
-        //    var _ = this.PowerShell.AddCommand("Copy-Item")
-        //        .AddParameter("Path", @"test:\child1")
-        //        .AddParameter("Destination", @"test:\child2")
-        //        .AddParameter("Recurse")
-        //        .Invoke()
-        //        .ToArray();
-
-        //    // ASSERT
-        //    Assert.False(this.PowerShell.HadErrors);
-        //    Assert.True(root.TryGetValue<JObject>("child2", out var child2));
-        //    Assert.True(child2!.TryGetValue<JObject>("child1", out var copy_child1));
-        //    Assert.NotNull(copy_child1!);
-        //    Assert.NotSame(child1, copy_child1);
-        //    Assert.True(copy_child1!.TryGetValue<JObject>("grandchild", out var _));
-        //    Assert.True(copy_child1!.TryGetValue<int>("data", out var data));
-        //    Assert.Equal(1, data);
-        //}
-
-        //[Fact]
-        //public void Powershell_copies_child_item_with_new_name_and_parent_recursive()
-        //{
-        //    // ARRANGE
-        //    var child1 = new JObject()
-        //    {
-        //        ["grandchild"] = new JObject(),
-        //        ["data"] = 1,
-        //    };
-
-        //    var root = this.ArrangeFileSystem(new JObject
-        //    {
-        //        ["child1"] = child1,
-        //        ["child2"] = new JObject()
-        //    });
-
-        //    // ACT
-        //    var _ = this.PowerShell.AddCommand("Copy-Item")
-        //        .AddParameter("Path", @"test:\child1")
-        //        .AddParameter("Destination", @"test:\child2\parent\newname")
-        //        .AddParameter("Recurse")
-        //        .Invoke()
-        //        .ToArray();
-
-        //    // ASSERT
-        //    Assert.False(this.PowerShell.HadErrors);
-        //    Assert.True(root.TryGetValue<JObject>("child2", out var child2));
-        //    Assert.True(child2!.TryGetValue<JObject>("parent", out var parent));
-        //    Assert.True(parent!.TryGetValue<JObject>("newname", out var newname));
-
-        //    Assert.NotNull(newname!);
-        //    Assert.NotSame(child1, newname);
-        //    Assert.True(newname!.TryGetValue<JObject>("grandchild", out var _));
-        //    Assert.True(newname!.TryGetValue<int>("data", out var data));
-        //    Assert.Equal(1, data);
-        //}
+            // copy is shallow and contains the property but not the child node
+            Assert.True(root.ChildObject("child2").ChildObject("child1").TryGetValue("property", out var _));
+            Assert.True(root.ChildObject("child2").ChildObject("child1").TryGetValue("grandchild", out var _));
+            Assert.True(root.ChildObject("child2").ChildObject("child1").ChildObject("grandchild").TryGetValue("property2", out var property2));
+            Assert.Equal(2, property2.Value<int>());
+        }
 
         #endregion Copy-Item -Path -Destination -Recurse
     }

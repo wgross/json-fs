@@ -54,3 +54,9 @@ public class PowerShellTestBase : IDisposable
         };
     }
 }
+
+public static class JObjectExtensions
+{
+    public static JObject ChildObject(this JObject parent, string name)
+        => parent.Property(name)?.Value as JObject ?? throw new InvalidOperationException($"{name} isn't a JObject");
+}

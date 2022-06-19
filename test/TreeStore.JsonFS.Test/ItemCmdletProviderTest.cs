@@ -18,7 +18,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         this.ArrangeFileSystem(DefaultRoot());
 
         // ACT
-        var result = this.PowerShell.AddCommand("Get-Item")
+        var result = this.PowerShell
+            .AddCommand("Get-Item")
             .AddParameter("Path", @"test:\")
             .Invoke()
             .ToArray();
@@ -96,6 +97,108 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     #endregion Get-Item -Path
+
+    #region ISet-Item
+
+    [Fact]
+    public void Powershell_sets_item_value_from_JObject()
+    {
+        // ARRANGE
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        });
+
+        var newValue = new JObject
+        {
+            ["value1"] = new JValue(1)
+        };
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Set-Item")
+            .AddParameter("Path", @"test:\child")
+            .AddParameter("Value", newValue)
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(1, result.Property<long>("value1"));
+        Assert.NotSame(newValue, root["child"]);
+        Assert.Same(newValue["data"], ((JObject)root["child"]!)["data"]);
+    }
+
+    [Fact]
+    public void Powershell_sets_item_value_from_stringt()
+    {
+        // ARRANGE
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        });
+
+        var newValue = new JObject
+        {
+            ["value1"] = new JValue(1)
+        };
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Set-Item")
+            .AddParameter("Path", @"test:\child")
+            .AddParameter("Value", newValue.ToString())
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(1, result.Property<long>("value1"));
+        Assert.NotSame(newValue, root["child"]);
+        Assert.Same(newValue["data"], ((JObject)root["child"]!)["data"]);
+    }
+
+    #endregion ISet-Item
+
+    #region Clear-Item -Path
+
+    [Fact]
+    public void Powershell_clears_item_value()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value"] = new JValue(1),
+            ["array"] = new JArray(1, 2)
+        });
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Clear-Item")
+            .AddParameter("Path", @"test:\")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // underlying JObject has value properties nulled
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Null(result.Property<int?>("value"));
+        Assert.Null(result.Property<int[]>("array"));
+    }
+
+    #endregion Clear-Item -Path
 
     #region Test-Path -Path -PathType
 
