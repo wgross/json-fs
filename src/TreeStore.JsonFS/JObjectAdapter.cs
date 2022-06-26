@@ -15,7 +15,7 @@ public sealed class JObjectAdapter : IServiceProvider,
     // NavigationCmdletProvider
     IMoveChildItem,
     // IPropertyCmdletProvider
-    IClearItemProperty, ISetItemProperty, IRemoveItemProperty, IMoveItemProperty
+    IClearItemProperty, ISetItemProperty, IRemoveItemProperty, ICopyItemProperty, IMoveItemProperty, INewItemProperty, IRenameItemProperty
 
 {
     private readonly JObject payload;
@@ -287,17 +287,40 @@ public sealed class JObjectAdapter : IServiceProvider,
         foreach (var p in properties.Properties)
             if (this.payload.TryGetValue(p.Name, out var value))
                 if (value.Type != JTokenType.Object)
-                    this.SetPropertyValue(p.Name, p.Value);
+                    this.IfValueSemantic(p.Value, jt => this.payload[p.Name] = jt);
     }
 
-    private void SetPropertyValue(string name, object value)
+    private void IfValueSemantic(object? value, Action<JToken> then)
     {
-        if (value.GetType().IsArray)
-            this.payload[name] = new JArray(value);
-        else if (value.GetType().IsClass && !typeof(string).Equals(value.GetType()))
+        if (value is null)
+            then(JValue.CreateNull());
+        else if (value is string str)
+            then(new JValue(value));
+        else if (value.GetType().IsArray)
+            then(new JArray(value));
+        else if (value.GetType().IsClass)
             return;
         else
-            this.payload[name] = new JValue(value);
+            then(new JValue(value));
+    }
+
+    private void IfValueSemantic(JToken token, Action<JToken> then)
+    {
+        switch (token.Type)
+        {
+            case JTokenType.Null:
+                this.IfValueSemantic(null, then);
+                return;
+
+            case JTokenType.Object:
+                return;
+
+            case JTokenType.Array:
+            case JTokenType.String:
+            default:
+                this.IfValueSemantic(((JValue)token).Value, then);
+                return;
+        }
     }
 
     #endregion ISetItemPorperty
@@ -312,6 +335,24 @@ public sealed class JObjectAdapter : IServiceProvider,
     }
 
     #endregion IRemoveItemProperty
+
+    #region ICopyItemProperty
+
+    void ICopyItemProperty.CopyItemProperty(ProviderNode sourceNode, string sourceProperty, string destinationProperty)
+    {
+        if (sourceNode.Underlying is JObjectAdapter sourceJobject)
+        {
+            if (sourceJobject.payload.TryGetValue(sourceProperty, out var value))
+            {
+                if (value.Type != JTokenType.Object)
+                {
+                    this.payload[destinationProperty] = value;
+                }
+            }
+        }
+    }
+
+    #endregion ICopyItemProperty
 
     #region IMoveItemProperty
 
@@ -332,4 +373,29 @@ public sealed class JObjectAdapter : IServiceProvider,
     }
 
     #endregion IMoveItemProperty
+
+    #region INewItemProperty
+
+    void INewItemProperty.NewItemProperty(string propertyName, string? propertyTypeName, object? value)
+    {
+        if (!this.payload.TryGetValue(propertyName, out var _))
+            this.IfValueSemantic(value, jt => this.payload[propertyName] = jt);
+    }
+
+    #endregion INewItemProperty
+
+    #region IRenameItemProperty
+
+    void IRenameItemProperty.RenameItemProperty(string sourceProperty, string destinationProperty)
+    {
+        if (this.payload.TryGetValue(sourceProperty, out var value))
+            if (!this.payload.TryGetValue(destinationProperty, out var _))
+                this.IfValueSemantic(value, jt =>
+                {
+                    if (this.payload.Remove(sourceProperty))
+                        this.payload[destinationProperty] = jt;
+                });
+    }
+
+    #endregion IRenameItemProperty
 }

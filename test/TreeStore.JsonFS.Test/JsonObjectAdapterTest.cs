@@ -935,6 +935,29 @@ public class JObjectAdapterTest
     }
 
     [Fact]
+    public void SetItemProperty_sets_property_null()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = 1
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        // ACT
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(new PSObject(new
+        {
+            data1 = (object)null,
+        }));
+
+        // ASSERT
+        // property has value of null
+        Assert.True(root.TryGetValue("data1", out var v1));
+        Assert.Equal(JTokenType.Null, v1!.Type);
+    }
+
+    [Fact]
     public void SetItemProperty_ignores_child_nodes()
     {
         // ARRANGE
@@ -1067,6 +1090,105 @@ public class JObjectAdapterTest
 
     #endregion IRemoveItemProperty
 
+    #region ICopyItemProperty
+
+    [Fact]
+    public void CopyItemProperty_set_new_properties_value()
+    {
+        // ARRANGE
+        var child = new JObject();
+        var childAdapter = new JObjectAdapter(child);
+        var childNode = new ContainerNode("child1", childAdapter);
+
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["child"] = child
+        };
+        var rootNode = new RootNode(new JObjectAdapter(root));
+
+        // ACT
+        childNode.CopyItemProperty(rootNode, "data1", "data1");
+
+        // ASSERT
+        Assert.True(child.TryGetValue("data1", out var value));
+        Assert.Equal("text", value);
+    }
+
+    [Fact]
+    public void CopyItemProperty_ignores_object_property()
+    {
+        // ARRANGE
+        var child = new JObject();
+        var childAdapter = new JObjectAdapter(child);
+        var childNode = new ContainerNode("child1", childAdapter);
+
+        var root = new JObject
+        {
+            ["data1"] = new JObject(),
+            ["child"] = child
+        };
+        var rootNode = new RootNode(new JObjectAdapter(root));
+
+        // ACT
+        childNode.CopyItemProperty(rootNode, "data1", "data1");
+
+        // ASSERT
+        // property wasn't copied
+        Assert.False(child.TryGetValue("data1", out var value));
+    }
+
+    [Fact]
+    public void CopyItemProperty_ignores_missing_source_property()
+    {
+        // ARRANGE
+        var child = new JObject();
+        var childAdapter = new JObjectAdapter(child);
+        var childNode = new ContainerNode("child1", childAdapter);
+
+        var root = new JObject
+        {
+            ["child"] = child
+        };
+        var rootNode = new RootNode(new JObjectAdapter(root));
+
+        // ACT
+        childNode.CopyItemProperty(rootNode, "data1", "data1");
+
+        // ASSERT
+        // property wasn't copied
+        Assert.False(child.TryGetValue("data1", out var value));
+    }
+
+    [Fact]
+    public void CopyItemProperty_ignores_duplicate_property()
+    {
+        // ARRANGE
+        var child = new JObject
+        {
+            ["data1"] = 1
+        };
+
+        var childAdapter = new JObjectAdapter(child);
+        var childNode = new ContainerNode("child1", childAdapter);
+
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["child"] = child
+        };
+        var rootNode = new RootNode(new JObjectAdapter(root));
+
+        // ACT
+        childNode.CopyItemProperty(rootNode, "data1", "data1");
+
+        // ASSERT
+        Assert.True(child.TryGetValue("data1", out var value));
+        Assert.Equal(1, value);
+    }
+
+    #endregion ICopyItemProperty
+
     #region IMoveItemProperty
 
     [Fact]
@@ -1097,7 +1219,7 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void MoveItemProperty_moving_ignores_object_properties()
+    public void MoveItemProperty_ignores_object_properties()
     {
         // ARRANGE
         var child = new JObject();
@@ -1122,7 +1244,7 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void MoveItemProperty_moving_ignores_missing_source_property()
+    public void MoveItemProperty_ignores_missing_source_property()
     {
         // ARRANGE
         var child = new JObject();
@@ -1144,5 +1266,174 @@ public class JObjectAdapterTest
         Assert.False(child.TryGetValue("data1", out var value));
     }
 
+    [Fact]
+    public void MoveItemPropertyignores_duplicate_property()
+    {
+        // ARRANGE
+        var child = new JObject
+        {
+            ["data1"] = 1
+        };
+
+        var childAdapter = new JObjectAdapter(child);
+        var childNode = new LeafNode("child1", childAdapter);
+
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["child"] = child
+        };
+        var rootNode = new RootNode(new JObjectAdapter(root));
+
+        // ACT
+        childNode.MoveItemProperty(rootNode, sourcePropertyName: "data1", destinationPropertyName: "data1");
+
+        // ASSERT
+        // root has property removed
+        Assert.False(root.TryGetValue("data1", out var _));
+
+        // child has property added
+        Assert.True(child.TryGetValue("data1", out var value));
+        Assert.Equal(1, value);
+    }
+
     #endregion IMoveItemProperty
+
+    #region INewItemProperty
+
+    [Fact]
+    public void NewItemProperty_creates_data_property()
+    {
+        // ARRANGE
+        var root = new JObject();
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, 1);
+
+        // ASSERT
+        // new property was created
+        Assert.True(root.TryGetValue("data1", out var value));
+        Assert.Equal(1, value);
+    }
+
+    [Fact]
+    public void NewItemProperty_fails_on_duplicate_name()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text"
+        };
+
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, 1);
+
+        // ASSERT
+        // old property is still there
+        Assert.True(root.TryGetValue("data1", out var value));
+        Assert.Equal("text", value);
+    }
+
+    [Fact]
+    public void NewItemProperty_fails_on_object_value()
+    {
+        // ARRANGE
+        var root = new JObject();
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, new { data = 1 });
+
+        // ASSERT
+        // property wasn't created
+        Assert.False(root.TryGetValue("data1", out var _));
+    }
+
+    [Fact]
+    public void NewItemProperty_set_property_as_null()
+    {
+        // ARRANGE
+        var root = new JObject();
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, null);
+
+        // ASSERT
+        // property wasn't created
+        Assert.True(root.TryGetValue("data1", out var value));
+        Assert.Equal(JTokenType.Null, value.Type);
+    }
+
+    #endregion INewItemProperty
+
+    #region IRenameItemProperty
+
+    [Fact]
+    public void RenameItemProperty_renames_data_property()
+    {
+        // ARRANGE
+        const string? data = "text";
+        var root = new JObject
+        {
+            ["data"] = data,
+        };
+
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty("data", "newname");
+
+        // ASSERT
+        Assert.True(root.TryGetValue("newname", out var value));
+        Assert.Same(data, ((JValue)value).Value);
+    }
+
+    [Fact]
+    public void RenameItemProperty_ignores_object_property()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data"] = new JObject(),
+        };
+
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty("data", "newname");
+
+        // ASSERT
+        // property wasn't renamed
+        Assert.False(root.TryGetValue("newname", out var value));
+    }
+
+    [Fact]
+    public void RenameItemProperty_ignores_duplicate_property()
+    {
+        // ARRANGE
+        const string? data = "text";
+        var root = new JObject
+        {
+            ["data"] = data,
+            ["newname"] = 1,
+        };
+
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty("data", "newname");
+
+        // ASSERT
+        // properties are unchanged
+        Assert.True(root.TryGetValue("data", out var dataValue));
+        Assert.Equal(data, ((JValue)dataValue).Value);
+        Assert.True(root.TryGetValue("newname", out var newnameValue));
+        Assert.Equal(1L, ((JValue)newnameValue).Value);
+    }
+
+    #endregion IRenameItemProperty
 }
