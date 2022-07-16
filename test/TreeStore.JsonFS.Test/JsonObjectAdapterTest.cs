@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
 using System.Management.Automation;
+using System.Management.Automation.Provider;
 using TreeStore.Core;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Nodes;
@@ -12,6 +14,16 @@ namespace TreeStore.JsonFS.Test;
 
 public class JObjectAdapterTest
 {
+    private readonly MockRepository mocks = new MockRepository(MockBehavior.Strict);
+    private readonly Mock<CmdletProvider> providerMock;
+
+    public JObjectAdapterTest()
+    {
+        this.providerMock = this.mocks.Create<CmdletProvider>();
+    }
+
+    public void Dispose() => this.mocks.VerifyAll();
+
     #region IGetItem
 
     [Fact]
@@ -26,7 +38,7 @@ public class JObjectAdapterTest
         });
 
         // ACT
-        var result = ((IGetItem)node).GetItem();
+        var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
 
         // ASSERT
         // value properties are note properties in the PSObject
@@ -61,11 +73,11 @@ public class JObjectAdapterTest
 
         // ACT
         // override node with new data
-        node.GetRequiredService<ISetItem>().SetItem(newData);
+        node.GetRequiredService<ISetItem>().SetItem(this.providerMock.Object, newData);
 
         // ASSERT
         // array was added, value overrides the old value
-        var psobject = node.GetRequiredService<IGetItem>().GetItem();
+        var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Equal(1, psobject!.Property<long>("value"));
         Assert.Equal(new object[] { 1, 2 }, psobject!.Property<object[]>("array"));
@@ -74,7 +86,7 @@ public class JObjectAdapterTest
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
 
         // object was added
-        Assert.Equal("object", node.GetRequiredService<IGetChildItem>().GetChildItems().Single().Name);
+        Assert.Equal("object", node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Single().Name);
     }
 
     [Fact]
@@ -97,11 +109,11 @@ public class JObjectAdapterTest
 
         // ACT
         // override node with new data
-        node.GetRequiredService<ISetItem>().SetItem(newData.ToString());
+        node.GetRequiredService<ISetItem>().SetItem(this.providerMock.Object, newData.ToString());
 
         // ASSERT
         // array was added, value overrides the old value
-        var psobject = node.GetRequiredService<IGetItem>().GetItem();
+        var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Equal(1, psobject!.Property<long>("value"));
         Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("array"));
@@ -110,7 +122,7 @@ public class JObjectAdapterTest
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
 
         // object was added
-        Assert.Equal("object", node.GetRequiredService<IGetChildItem>().GetChildItems().Single().Name);
+        Assert.Equal("object", node.GetRequiredService<IGetChildItem>().GetChildItems(provider: this.providerMock.Object).Single().Name);
     }
 
     //[Fact]
@@ -168,7 +180,7 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(jnode);
 
         // ACT
-        node.GetRequiredService<IClearItem>().ClearItem();
+        node.GetRequiredService<IClearItem>().ClearItem(this.providerMock.Object);
 
         // ASSERT
         // property and array are null
@@ -182,7 +194,7 @@ public class JObjectAdapterTest
         Assert.NotNull(jobject);
 
         // item properties are there but 'null'
-        var psobject = node.GetRequiredService<IGetItem>().GetItem();
+        var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Null(psobject!.Property<object>("value"));
         Assert.Null(psobject!.Property<object>("array"));
@@ -208,7 +220,7 @@ public class JObjectAdapterTest
         });
 
         // ACT
-        var result = ((IGetChildItem)node).HasChildItems();
+        var result = ((IGetChildItem)node).HasChildItems(this.providerMock.Object);
 
         // ASSERT
         // the node has child nodes.
@@ -231,12 +243,12 @@ public class JObjectAdapterTest
         });
 
         // ACT
-        var result = ((IGetChildItem)node).GetChildItems().ToArray();
+        var result = ((IGetChildItem)node).GetChildItems(this.providerMock.Object).ToArray();
 
         // ASSERT
         Assert.Single(result);
 
-        var pso = result.Single().GetItem();
+        var pso = result.Single().GetItem(this.providerMock.Object);
 
         // the child properties are note properties of the PSObject
         Assert.Equal(2, pso.Property<long>("value"));
@@ -254,7 +266,7 @@ public class JObjectAdapterTest
         });
 
         // ACT
-        var result = ((IGetChildItem)node).GetChildItems().ToArray();
+        var result = ((IGetChildItem)node).GetChildItems(this.providerMock.Object).ToArray();
 
         // ASSERT
         // an empty JObject has no properties
@@ -280,7 +292,7 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(underlying);
 
         // ACT
-        ((IRemoveChildItem)node).RemoveChildItem("container1", recurse);
+        ((IRemoveChildItem)node).RemoveChildItem(provider: this.providerMock.Object, "container1", recurse);
 
         // ASSERT
         // the child node is gone
@@ -302,7 +314,7 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(underlying);
 
         // ACT
-        ((IRemoveChildItem)node).RemoveChildItem("property", recurse);
+        ((IRemoveChildItem)node).RemoveChildItem(provider: this.providerMock.Object, "property", recurse);
 
         // ASSERT
         // the value property is untouched
@@ -326,13 +338,12 @@ public class JObjectAdapterTest
 
         // ACT
         var value = new JObject();
-        var result = ((INewChildItem)node).NewChildItem("container1", null, null);
+        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", null, null);
 
         // ASSERT
         // the node was created as a container node
-        Assert.NotNull(result);
+        Assert.True(result.Created);
         Assert.Equal("container1", result!.Name);
-        Assert.True(result is ContainerNode);
 
         // A JObjet was added to the parent JObject
         Assert.True(underlying.TryGetValue("container1", out var added));
@@ -354,13 +365,12 @@ public class JObjectAdapterTest
         {
             { "property2" , "text" },
         };
-        var result = ((INewChildItem)node).NewChildItem("container1", "itemTypeValue", value);
+        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
 
         // ASSERT
         // the node was created as a container node
-        Assert.NotNull(result);
+        Assert.True(result.Created);
         Assert.Equal("container1", result!.Name);
-        Assert.True(result is ContainerNode);
 
         // a JObject was added to the parent node
         Assert.True(underlying.TryGetValue("container1", out var added));
@@ -383,13 +393,12 @@ public class JObjectAdapterTest
         // ACT
         var value = new JObject { ["property2"] = new JValue("text") }.ToString();
 
-        var result = ((INewChildItem)node).NewChildItem("container1", "itemTypeValue", value);
+        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
 
         // ASSERT
         // the node was created as container
-        Assert.NotNull(result);
+        Assert.True(result.Created);
         Assert.Equal("container1", result!.Name);
-        Assert.True(result is ContainerNode);
 
         // the node was added as JObject to the parent node.
         Assert.True(underlying.TryGetValue("container1", out var added));
@@ -412,7 +421,7 @@ public class JObjectAdapterTest
         // ACT & ASSERT
         // try overriding the existing property
         var value = new JObject();
-        var result = Assert.Throws<InvalidOperationException>(() => ((INewChildItem)node).NewChildItem("property", null, null));
+        var result = Assert.Throws<InvalidOperationException>(() => ((INewChildItem)node).NewChildItem(this.providerMock.Object, "property", null, null));
 
         // ASSERT
         Assert.Equal("A property(name='property') already exists", result.Message);
@@ -433,7 +442,7 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(underlying);
 
         // ACT
-        ((IRenameChildItem)node).RenameChildItem("container1", "newname");
+        ((IRenameChildItem)node).RenameChildItem(this.providerMock.Object, "container1", "newname");
 
         // ASSERT
         // newname is there, container1 isn't
@@ -454,7 +463,7 @@ public class JObjectAdapterTest
 
         // ACT
         // try to rename a property to an existing name
-        ((IRenameChildItem)node).RenameChildItem("container1", "newname");
+        ((IRenameChildItem)node).RenameChildItem(provider: this.providerMock.Object, "container1", "newname");
 
         // ASSERT
         // both properties are untouched
@@ -474,7 +483,7 @@ public class JObjectAdapterTest
 
         // ACT
         // try to rname a property name which doesn't exist
-        ((IRenameChildItem)node).RenameChildItem("missing", "newname");
+        ((IRenameChildItem)node).RenameChildItem(this.providerMock.Object, "missing", "newname");
 
         // no property was added none was removed.
         Assert.False(underlying.TryGetValue("newname", out var _));
@@ -500,13 +509,14 @@ public class JObjectAdapterTest
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
 
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
 
         // ACT
         // copy child1 under child2 as 'child1'
         var result = dst.GetRequiredService<ICopyChildItem>().CopyChildItem(
-            nodeToCopy: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: Array.Empty<string>());
 
         // ASSERT
@@ -514,7 +524,7 @@ public class JObjectAdapterTest
         Assert.NotNull(root.ChildObject("child1"));
 
         // child1 was created under child2
-        Assert.IsType<ContainerNode>(result);
+        Assert.True(result.Created);
         Assert.NotNull(root.ChildObject("child2")!.ChildObject("child1"));
         Assert.NotSame(nodeToCopy, root.ChildObject("child2").ChildObject("child1"));
 
@@ -540,18 +550,19 @@ public class JObjectAdapterTest
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
 
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
 
         // ACT
         // copy child1 under child2 as 'newname'
         var result = dst.GetRequiredService<ICopyChildItem>().CopyChildItem(
-            nodeToCopy: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            provider: providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: new string[] { "newname" });
 
         // ASSERT
         // new node was created
-        Assert.IsType<ContainerNode>(result);
+        Assert.True(result.Created);
         Assert.Equal("newname", result.Name);
         Assert.NotNull(root.ChildObject("child2").ChildObject("newname"));
 
@@ -575,18 +586,19 @@ public class JObjectAdapterTest
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
 
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
 
         // ACT
         // copy child1 under child2 as 'newparent/newname'
         var result = dst.GetRequiredService<ICopyChildItem>().CopyChildItem(
-            nodeToCopy: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: new string[] { "newparent", "newname" });
 
         // ASSERT
         // node was created
-        Assert.IsType<ContainerNode>(result);
+        Assert.True(result.Created);
         Assert.Equal("newname", result.Name);
 
         // parent node was created
@@ -621,13 +633,14 @@ public class JObjectAdapterTest
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
 
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
 
         // ACT
         // copy child1 under child2 as 'child1'
         var result = dst.GetRequiredService<ICopyChildItemRecursive>().CopyChildItemRecursive(
-            nodeToCopy: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: Array.Empty<string>());
 
         // ASSERT
@@ -635,7 +648,7 @@ public class JObjectAdapterTest
         Assert.NotNull(root.ChildObject("child1"));
 
         // child1 was created under child2
-        Assert.IsType<ContainerNode>(result);
+        Assert.True(result.Created);
         Assert.NotNull(root.ChildObject("child2")!.ChildObject("child1"));
         Assert.NotSame(nodeToCopy, root.ChildObject("child2").ChildObject("child1"));
 
@@ -665,18 +678,19 @@ public class JObjectAdapterTest
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
 
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
 
         // ACT
         // copy child1 under child2 as 'newname'
         var result = dst.GetRequiredService<ICopyChildItemRecursive>().CopyChildItemRecursive(
-            nodeToCopy: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: new string[] { "newname" });
 
         // ASSERT
         // new node was created
-        Assert.IsType<ContainerNode>(result);
+        Assert.True(result.Created);
         Assert.Equal("newname", result.Name);
         Assert.NotNull(root.ChildObject("child2").ChildObject("newname"));
 
@@ -703,18 +717,19 @@ public class JObjectAdapterTest
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
 
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
 
         // ACT
         // copy child1 under child2 as 'newparent/newname'
         var result = dst.GetRequiredService<ICopyChildItemRecursive>().CopyChildItemRecursive(
-            nodeToCopy: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: new string[] { "newparent", "newname" });
 
         // ASSERT
         // node was created
-        Assert.IsType<ContainerNode>(result);
+        Assert.True(result.Created);
         Assert.Equal("newname", result.Name);
 
         // parent node was created
@@ -746,14 +761,15 @@ public class JObjectAdapterTest
         };
 
         var nodetoMove = root.ChildObject("child1");
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter(root.ChildObject("child2")!);
 
         // ACT
         // move child1 under child2 as child1
         dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
+            provider: this.providerMock.Object,
             parentOfNodeToMove: rootNode,
-            nodeToMove: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            nodeToMove: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: Array.Empty<string>());
 
         // ASSERT
@@ -783,14 +799,15 @@ public class JObjectAdapterTest
         };
 
         var nodetoMove = root.ChildObject("child1");
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter(root.ChildObject("child2")!);
 
         // ACT
         // move child1 under child2 as newname
         dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
+            provider: this.providerMock.Object,
             parentOfNodeToMove: rootNode,
-            nodeToMove: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            nodeToMove: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: new[] { "newname" });
 
         // ASSERT
@@ -817,14 +834,15 @@ public class JObjectAdapterTest
         };
 
         var nodetoMove = root.ChildObject("child1");
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter(root.ChildObject("child2")!);
 
         // ACT
         // move child1 under child2 as newparent/newname
         dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
+            provider: this.providerMock.Object,
             parentOfNodeToMove: rootNode,
-            nodeToMove: rootNode.GetChildItems().Single(n => n.Name == "child1"),
+            nodeToMove: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
             destination: new[] { "newparent", "newname" });
 
         // ASSERT
@@ -855,7 +873,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(new[] { "data1", "data2" });
+        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "data1", "data2" });
 
         // ASSERT
         // properties still exist but are nulled
@@ -876,7 +894,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(new[] { "unkown" });
+        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "unkown" });
 
         // ASSERT
         // property wasn't created
@@ -897,7 +915,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(new[] { "data" });
+        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "data" });
 
         // ASSERT
         // the child node is untouched
@@ -921,7 +939,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(new PSObject(new
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
             data1 = "changed",
             data2 = new int[] { 1, 2 }
@@ -946,7 +964,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(new PSObject(new
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(provider: this.providerMock.Object, new PSObject(new
         {
             data1 = (object)null,
         }));
@@ -972,7 +990,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(new PSObject(new
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
             data1 = "changed",
             data2 = 3
@@ -997,7 +1015,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(new PSObject(new
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
             unkown = "changed",
         }));
@@ -1019,7 +1037,7 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         // ACT
-        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(new PSObject(new
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
             data1 = new { property = "changed" },
         }));
@@ -1045,7 +1063,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty("value");
+        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(this.providerMock.Object, "value");
 
         // ASSERT
         // not only the value but also the property is removed.
@@ -1063,7 +1081,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty("array");
+        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(provider: this.providerMock.Object, "array");
 
         // ASSERT
         // not only the value but also the property is removed.
@@ -1081,7 +1099,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty("child");
+        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(provider: this.providerMock.Object, "child");
 
         // ASSERT
         // not only the value but also the property is removed.
@@ -1098,14 +1116,14 @@ public class JObjectAdapterTest
         // ARRANGE
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new ContainerNode("child1", childAdapter);
+        var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["data1"] = "text",
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.CopyItemProperty(rootNode, "data1", "data1");
@@ -1121,14 +1139,14 @@ public class JObjectAdapterTest
         // ARRANGE
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new ContainerNode("child1", childAdapter);
+        var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["data1"] = new JObject(),
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.CopyItemProperty(rootNode, "data1", "data1");
@@ -1144,13 +1162,13 @@ public class JObjectAdapterTest
         // ARRANGE
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new ContainerNode("child1", childAdapter);
+        var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.CopyItemProperty(rootNode, "data1", "data1");
@@ -1170,14 +1188,14 @@ public class JObjectAdapterTest
         };
 
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new ContainerNode("child1", childAdapter);
+        var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["data1"] = "text",
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.CopyItemProperty(rootNode, "data1", "data1");
@@ -1197,14 +1215,14 @@ public class JObjectAdapterTest
         // ARRANGE
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new LeafNode("child1", childAdapter);
+        var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["data1"] = "text",
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.MoveItemProperty(rootNode, sourcePropertyName: "data1", destinationPropertyName: "data1");
@@ -1224,20 +1242,20 @@ public class JObjectAdapterTest
         // ARRANGE
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new LeafNode("child1", childAdapter);
+        var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["object"] = new JObject(),
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.MoveItemProperty(rootNode, sourcePropertyName: "object", destinationPropertyName: "data1");
 
         // ASSERT
-        // root still hast the objectc property
+        // root still hast the object property
         Assert.True(root.TryGetValue("object", out var _));
         // child hasn't got a new object property
         Assert.False(child.TryGetValue("data1", out var _));
@@ -1249,14 +1267,14 @@ public class JObjectAdapterTest
         // ARRANGE
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new LeafNode("child1", childAdapter);
+        var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["data1"] = "text",
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.MoveItemProperty(rootNode, sourcePropertyName: "missing", destinationPropertyName: "data1");
@@ -1276,14 +1294,14 @@ public class JObjectAdapterTest
         };
 
         var childAdapter = new JObjectAdapter(child);
-        var childNode = new LeafNode("child1", childAdapter);
+        var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
 
         var root = new JObject
         {
             ["data1"] = "text",
             ["child"] = child
         };
-        var rootNode = new RootNode(new JObjectAdapter(root));
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
 
         // ACT
         childNode.MoveItemProperty(rootNode, sourcePropertyName: "data1", destinationPropertyName: "data1");
@@ -1309,7 +1327,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, 1);
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, 1);
 
         // ASSERT
         // new property was created
@@ -1329,7 +1347,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, 1);
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, 1);
 
         // ASSERT
         // old property is still there
@@ -1345,7 +1363,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, new { data = 1 });
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, new { data = 1 });
 
         // ASSERT
         // property wasn't created
@@ -1360,7 +1378,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty("data1", null, null);
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, null);
 
         // ASSERT
         // property wasn't created
@@ -1385,7 +1403,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty("data", "newname");
+        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty(this.providerMock.Object, "data", "newname");
 
         // ASSERT
         Assert.True(root.TryGetValue("newname", out var value));
@@ -1404,7 +1422,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty("data", "newname");
+        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty(this.providerMock.Object, "data", "newname");
 
         // ASSERT
         // property wasn't renamed
@@ -1425,7 +1443,7 @@ public class JObjectAdapterTest
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty("data", "newname");
+        rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty(this.providerMock.Object, "data", "newname");
 
         // ASSERT
         // properties are unchanged

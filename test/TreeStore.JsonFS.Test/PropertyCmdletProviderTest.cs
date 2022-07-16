@@ -6,6 +6,7 @@ using Xunit;
 
 namespace TreeStore.JsonFS.Test
 {
+    [Collection(nameof(PowerShell))]
     public class PropertyCmdletProviderTest : PowerShellTestBase
     {
         #region Get-ItemProperty -Path -Name
