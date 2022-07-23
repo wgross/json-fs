@@ -1,18 +1,14 @@
-﻿using System.Management.Automation;
-using System.Management.Automation.Provider;
-using TreeStore.Core.Providers;
-
-namespace TreeStore.JsonFS;
+﻿namespace TreeStore.JsonFS;
 
 [CmdletProvider(JsonFsCmdletProvider.Id, ProviderCapabilities.None)]
-public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase
+public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsRootNodeModification
 {
     public const string Id = "JsonFS";
 
     /// <summary>
     /// Creates the root node. The input string is the drive name.
     /// </summary>
-    public static Func<string, IServiceProvider>? RootNodeProvider { get; set; }
+    public static JsonFsRootProvider? RootNodeProvider { get; set; }
 
     /// <summary>
     /// Creates a new drive from the given creation parameters in <paramref name="drive"/>.
@@ -29,4 +25,11 @@ public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase
            description: drive.Description,
            credential: drive.Credential));
     }
+
+    IDisposable IJsonFsRootNodeModification.BeginModify() => this.PSDriveInfo switch
+    {
+        JsonFsDriveInfo jsonFsDriveInfo => jsonFsDriveInfo.RootNodeProvider.BeginModify(),
+
+        _ => throw new InvalidOperationException($"The PSDriveInfo(type='{this.PSDriveInfo.GetType()}') doesn't support modification.")
+    };
 }

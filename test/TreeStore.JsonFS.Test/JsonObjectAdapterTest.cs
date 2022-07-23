@@ -1,14 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Linq;
-using System.Management.Automation;
 using System.Management.Automation.Provider;
-using TreeStore.Core;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Nodes;
-using Xunit;
 
 namespace TreeStore.JsonFS.Test;
 
@@ -16,13 +10,26 @@ public class JObjectAdapterTest
 {
     private readonly MockRepository mocks = new MockRepository(MockBehavior.Strict);
     private readonly Mock<CmdletProvider> providerMock;
+    private readonly Mock<IDisposable> disopsableMock;
 
     public JObjectAdapterTest()
     {
         this.providerMock = this.mocks.Create<CmdletProvider>();
+        this.disopsableMock = this.mocks.Create<IDisposable>();
     }
 
     public void Dispose() => this.mocks.VerifyAll();
+
+    private void ArrangeBeginModification()
+    {
+        this.providerMock
+          .As<IJsonFsRootNodeModification>()
+          .Setup(p => p.BeginModify())
+          .Returns(this.disopsableMock.Object);
+
+        this.disopsableMock
+            .Setup(d => d.Dispose());
+    }
 
     #region IGetItem
 
@@ -57,6 +64,7 @@ public class JObjectAdapterTest
     public void SetItem_replaces_from_JObject()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
 
         var node = new JObjectAdapter(new JObject
         {
@@ -93,6 +101,7 @@ public class JObjectAdapterTest
     public void SetItem_replaces_from_string()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
 
         var node = new JObjectAdapter(new JObject
         {
@@ -166,6 +175,8 @@ public class JObjectAdapterTest
     public void ClearItem_nulls_value_properties()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var jnode = new JObject()
         {
             ["value"] = new JValue(1),
@@ -283,6 +294,8 @@ public class JObjectAdapterTest
     public void RemoveChildItem_removes_JObject_item(bool recurse)
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             ["container1"] = new JObject(),
@@ -305,6 +318,8 @@ public class JObjectAdapterTest
     public void RemoveChildItem_ignores_removing_JValue_item(bool recurse)
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             ["container1"] = new JObject(),
@@ -329,6 +344,8 @@ public class JObjectAdapterTest
     public void NewChildItem_creates_JObject_item()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             { "property" , "text" },
@@ -353,6 +370,8 @@ public class JObjectAdapterTest
     public void NewChildItem_creates_JObject_item_from_JObject()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             { "property" , "text" },
@@ -383,6 +402,8 @@ public class JObjectAdapterTest
     public void NewChildItem_creates_JObject_item_from_Json()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             { "property" , "text" },
@@ -411,6 +432,8 @@ public class JObjectAdapterTest
     public void NewChildItem_fails_for_existing_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             { "property" , "text" },
@@ -434,6 +457,9 @@ public class JObjectAdapterTest
     [Fact]
     public void RenameChildItem_renames_property()
     {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             ["container1"] = new JObject(),
@@ -453,6 +479,9 @@ public class JObjectAdapterTest
     [Fact]
     public void RenameChildItem_fails_for_existing_property()
     {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             ["container1"] = new JObject(),
@@ -474,6 +503,9 @@ public class JObjectAdapterTest
     [Fact]
     public void RenameChildItem_fails_for_missing_property()
     {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
         var underlying = new JObject
         {
             ["container1"] = new JObject(),
@@ -498,6 +530,8 @@ public class JObjectAdapterTest
     public void CopyChildItem_copies_to_node_with_source_name()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child1"] = new JObject
@@ -539,6 +573,8 @@ public class JObjectAdapterTest
     public void CopyChildItem_copies_to_node_with_new_name()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child1"] = new JObject
@@ -575,6 +611,8 @@ public class JObjectAdapterTest
     public void CopyChildItem_copies_to_node_with_new_parent_and_name()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child1"] = new JObject
@@ -613,12 +651,14 @@ public class JObjectAdapterTest
 
     #endregion ICopyChildItem
 
-    #region CopyChildItemRecursive
+    #region ICopyChildItemRecursive
 
     [Fact]
     public void CopyChildItem_copies_to_node_with_source_name_recursive()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child1"] = new JObject
@@ -664,6 +704,8 @@ public class JObjectAdapterTest
     public void CopyChildItem_copies_to_node_with_new_name_recursive()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child1"] = new JObject
@@ -703,6 +745,8 @@ public class JObjectAdapterTest
     public void CopyChildItem_copies_to_node_with_new_parent_and_name_recursive()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child1"] = new JObject
@@ -742,7 +786,7 @@ public class JObjectAdapterTest
         Assert.True(root.ChildObject("child2").ChildObject("newparent").ChildObject("newname").ChildObject("grandchild").TryGetValue("value", out var _));
     }
 
-    #endregion CopyChildItemRecursive
+    #endregion ICopyChildItemRecursive
 
     #region IMoveChildItem
 
@@ -750,6 +794,8 @@ public class JObjectAdapterTest
     public void MoveChildItem_moves_underlying()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject()
         {
             ["child1"] = new JObject
@@ -788,6 +834,8 @@ public class JObjectAdapterTest
     public void MoveChildItem_moves_underlying_with_new_name()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject()
         {
             ["child1"] = new JObject
@@ -823,6 +871,8 @@ public class JObjectAdapterTest
     public void MoveChildItem_moves_underlying_with_new_parent_and_name()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject()
         {
             ["child1"] = new JObject
@@ -872,6 +922,8 @@ public class JObjectAdapterTest
         };
         var rootNode = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "data1", "data2" });
 
@@ -893,6 +945,8 @@ public class JObjectAdapterTest
         };
         var rootNode = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "unkown" });
 
@@ -913,6 +967,8 @@ public class JObjectAdapterTest
             ["data"] = new JObject()
         };
         var rootNode = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
 
         // ACT
         rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "data" });
@@ -938,6 +994,8 @@ public class JObjectAdapterTest
         };
         var rootNode = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
@@ -962,6 +1020,8 @@ public class JObjectAdapterTest
             ["data2"] = 1
         };
         var rootNode = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
 
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(provider: this.providerMock.Object, new PSObject(new
@@ -989,6 +1049,8 @@ public class JObjectAdapterTest
         };
         var rootNode = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
@@ -1014,6 +1076,8 @@ public class JObjectAdapterTest
         };
         var rootNode = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
@@ -1035,6 +1099,8 @@ public class JObjectAdapterTest
             ["data1"] = "text",
         };
         var rootNode = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
 
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
@@ -1062,6 +1128,8 @@ public class JObjectAdapterTest
         };
         var rootAdapter = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(this.providerMock.Object, "value");
 
@@ -1074,6 +1142,8 @@ public class JObjectAdapterTest
     public void RemoveItemProperty_removes_array_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["array"] = new JArray(1, 2)
@@ -1092,6 +1162,8 @@ public class JObjectAdapterTest
     public void RemoveItemProperty_removing_property_ignores_child_properties()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var root = new JObject
         {
             ["child"] = new JObject(),
@@ -1114,6 +1186,8 @@ public class JObjectAdapterTest
     public void CopyItemProperty_set_new_properties_value()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
         var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
@@ -1137,6 +1211,8 @@ public class JObjectAdapterTest
     public void CopyItemProperty_ignores_object_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
         var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
@@ -1160,6 +1236,8 @@ public class JObjectAdapterTest
     public void CopyItemProperty_ignores_missing_source_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
         var childNode = new ContainerNode(this.providerMock.Object, "child1", childAdapter);
@@ -1182,6 +1260,8 @@ public class JObjectAdapterTest
     public void CopyItemProperty_ignores_duplicate_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject
         {
             ["data1"] = 1
@@ -1213,6 +1293,8 @@ public class JObjectAdapterTest
     public void MoveItemProperty_moves_property_value()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
         var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
@@ -1240,6 +1322,8 @@ public class JObjectAdapterTest
     public void MoveItemProperty_ignores_object_properties()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
         var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
@@ -1265,6 +1349,8 @@ public class JObjectAdapterTest
     public void MoveItemProperty_ignores_missing_source_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject();
         var childAdapter = new JObjectAdapter(child);
         var childNode = new LeafNode(this.providerMock.Object, "child1", childAdapter);
@@ -1288,6 +1374,8 @@ public class JObjectAdapterTest
     public void MoveItemPropertyignores_duplicate_property()
     {
         // ARRANGE
+        this.ArrangeBeginModification();
+
         var child = new JObject
         {
             ["data1"] = 1
@@ -1326,6 +1414,8 @@ public class JObjectAdapterTest
         var root = new JObject();
         var rootAdapter = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, 1);
 
@@ -1346,6 +1436,8 @@ public class JObjectAdapterTest
 
         var rootAdapter = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, 1);
 
@@ -1362,6 +1454,8 @@ public class JObjectAdapterTest
         var root = new JObject();
         var rootAdapter = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, new { data = 1 });
 
@@ -1376,6 +1470,8 @@ public class JObjectAdapterTest
         // ARRANGE
         var root = new JObject();
         var rootAdapter = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
 
         // ACT
         rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, null);
@@ -1402,6 +1498,8 @@ public class JObjectAdapterTest
 
         var rootAdapter = new JObjectAdapter(root);
 
+        this.ArrangeBeginModification();
+
         // ACT
         rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty(this.providerMock.Object, "data", "newname");
 
@@ -1420,6 +1518,8 @@ public class JObjectAdapterTest
         };
 
         var rootAdapter = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
 
         // ACT
         rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty(this.providerMock.Object, "data", "newname");
@@ -1441,6 +1541,8 @@ public class JObjectAdapterTest
         };
 
         var rootAdapter = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
 
         // ACT
         rootAdapter.GetRequiredService<IRenameItemProperty>().RenameItemProperty(this.providerMock.Object, "data", "newname");

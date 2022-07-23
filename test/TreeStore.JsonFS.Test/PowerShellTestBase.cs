@@ -1,6 +1,4 @@
-using Newtonsoft.Json.Linq;
-using System;
-using System.Management.Automation;
+using System.Diagnostics.CodeAnalysis;
 
 namespace TreeStore.JsonFS.Test;
 
@@ -13,14 +11,31 @@ public class PowerShellTestBase : IDisposable
 
     public PowerShellTestBase() => this.PowerShell = PowerShell.Create();
 
-    public void Dispose() => this.PowerShell.Dispose();
+    public void Dispose()
+    {
+        this.PowerShell.Commands.Clear();
+        this.PowerShell
+            .AddCommand("Remove-PSDrive")
+            .AddParameter("Name", "test")
+            .Invoke();
+        this.PowerShell.Dispose();
+
+        if (File.Exists(this.JsonFilePath))
+            File.Delete(this.JsonFilePath);
+    }
+
+    public string JsonFilePath = $"./{Guid.NewGuid()}.json";
+
+    public void AssertJsonFileContent(Action<JObject> assertion) => assertion(JObject.Parse(File.ReadAllText(this.JsonFilePath)));
 
     /// <summary>
     /// Arranges a dictionary file system using the given data as root nodes payload.
     /// </summary>
-    public JObject ArrangeFileSystem(JObject payload)
+    public virtual JObject ArrangeFileSystem(JObject payload)
     {
-        JsonFsCmdletProvider.RootNodeProvider = _ => new JObjectAdapter(payload);
+        File.WriteAllText(this.JsonFilePath, payload.ToString());
+
+        JsonFsCmdletProvider.RootNodeProvider = JsonFsRootProvider.FromFile(this.JsonFilePath);
 
         this.ArrangeFileSystem();
 
@@ -32,11 +47,12 @@ public class PowerShellTestBase : IDisposable
     /// </summary>
     protected void ArrangeFileSystem()
     {
-        this.PowerShell.AddCommand("Import-Module")
-            .AddArgument("./TreeStore.JsonFS.dll")
-            .Invoke();
         this.PowerShell.Commands.Clear();
-        this.PowerShell.AddCommand("New-PSDrive")
+        this.PowerShell
+            .AddCommand("Import-Module")
+            .AddArgument("./TreeStore.JsonFS.dll")
+            .AddStatement()
+            .AddCommand("New-PSDrive")
             .AddParameter("PSProvider", "JsonFS")
             .AddParameter("Name", "test")
             .AddParameter("Root", "")
@@ -59,4 +75,16 @@ public static class JObjectExtensions
 {
     public static JObject ChildObject(this JObject parent, string name)
         => parent.Property(name)?.Value as JObject ?? throw new InvalidOperationException($"{name} isn't a JObject");
+
+    public static bool TryGetJObject(this JObject parent, string name, [DoesNotReturnIf(true)] out JObject? jobject)
+    {
+        jobject = parent.Property(name)?.Value switch
+        {
+            JObject jo => jo,
+
+            _ => null
+        };
+
+        return jobject is not null;
+    }
 }

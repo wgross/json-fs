@@ -1,11 +1,14 @@
-﻿using System.Management.Automation;
+﻿namespace TreeStore.JsonFS;
 
-namespace TreeStore.JsonFS;
-
-public sealed class JsonFsDriveInfo : TreeStore.Core.Providers.TreeStoreDriveInfoBase
+public sealed class JsonFsDriveInfo : Core.Providers.TreeStoreDriveInfoBase
 {
-    public JsonFsDriveInfo(Func<string, IServiceProvider> rootNodeProvider, PSDriveInfo driveInfo)
-        : base(driveInfo, rootNodeProvider)
+    public JsonFsDriveInfo(JsonFsRootProvider rootNodeProvider, PSDriveInfo driveInfo)
+        : base(driveInfo)
     {
+        this.RootNodeProvider = rootNodeProvider;
     }
+
+    internal JsonFsRootProvider RootNodeProvider { get; }
+
+    protected override IServiceProvider GetRootNodeProvider() => this.RootNodeProvider.GetRootNodeServieProvider();
 }

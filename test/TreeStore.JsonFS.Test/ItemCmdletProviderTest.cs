@@ -1,10 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Linq;
-using System.Management.Automation;
-using TreeStore.Core;
-using Xunit;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ItemCmdletProviderTest : PowerShellTestBase
@@ -98,7 +92,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
     #endregion Get-Item -Path
 
-    #region ISet-Item
+    #region Set-Item
 
     [Fact]
     public void Powershell_sets_item_value_from_JObject()
@@ -129,12 +123,15 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.False(this.PowerShell.HadErrors);
         Assert.Equal(1, result.Property<long>("value1"));
-        Assert.NotSame(newValue, root["child"]);
-        Assert.Same(newValue["data"], ((JObject)root["child"]!)["data"]);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(newValue["data"], ((JObject)r["child"]!)["data"]);
+        });
     }
 
     [Fact]
-    public void Powershell_sets_item_value_from_stringt()
+    public void Powershell_sets_item_value_from_string()
     {
         // ARRANGE
 
@@ -162,11 +159,14 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.False(this.PowerShell.HadErrors);
         Assert.Equal(1, result.Property<long>("value1"));
-        Assert.NotSame(newValue, root["child"]);
-        Assert.Same(newValue["data"], ((JObject)root["child"]!)["data"]);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(newValue["data"], ((JObject)r["child"]!)["data"]);
+        });
     }
 
-    #endregion ISet-Item
+    #endregion Set-Item
 
     #region Clear-Item -Path
 
@@ -196,6 +196,12 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.False(this.PowerShell.HadErrors);
         Assert.Null(result.Property<int?>("value"));
         Assert.Null(result.Property<int[]>("array"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(JValue.CreateNull(), r.Property("value")!.Value);
+            Assert.Equal(JValue.CreateNull(), r.Property("array")!.Value);
+        });
     }
 
     #endregion Clear-Item -Path

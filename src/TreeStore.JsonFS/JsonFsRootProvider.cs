@@ -1,19 +1,34 @@
-﻿using Microsoft.Win32.SafeHandles;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
-namespace TreeStore.JsonFS;
-
-public record class Dispoable(SafeFileHandle handle) : IDisposable
-{
-    public void Dispose() => this.handle.Dispose();
-}
+﻿namespace TreeStore.JsonFS;
 
 public sealed class JsonFsRootProvider
 {
-    private readonly string path;
-    private readonly FileSystemWatcher watcher;
-    private JObject? rootNode;
+    public record class DisposableAutoSave(JsonFsRootProvider jsonFsProvider, FileStream fileStream) : IDisposable
+    {
+        public void Dispose() => this.jsonFsProvider.WriteFile(this.fileStream);
+    }
+
+    public record class DisposableDummy() : IDisposable
+    {
+        public void Dispose() { }
+    }
+
+    private const FileMode WriteJsonFileMode = FileMode.OpenOrCreate | FileMode.Truncate;
+
+    public static JsonFsRootProvider FromFile(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        var watcher = new FileSystemWatcher();
+        watcher.Path = Path.GetDirectoryName(path)!;
+        watcher.Filter = Path.GetFileName(path);
+        watcher.NotifyFilter = NotifyFilters.LastWrite;
+
+        var provider = new JsonFsRootProvider(path, watcher);
+
+        provider.ReadFile();
+
+        return provider;
+    }
 
     public JsonFsRootProvider(string path, FileSystemWatcher watcher)
     {
@@ -25,19 +40,40 @@ public sealed class JsonFsRootProvider
         this.watcher.Changed += this.ReadFile;
     }
 
+    #region Provide the root node to the Cmdlet provider
+
+    private JObject? rootNode;
+
+    public JObject GetRootJObject()
+    {
+        if (this.rootNode is null)
+            this.rootNode = this.ReadFile();
+
+        return this.rootNode;
+    }
+
+    public IServiceProvider GetRootNodeServieProvider() => new JObjectAdapter(this.GetRootJObject());
+
+    #endregion Provide the root node to the Cmdlet provider
+
+    #region Read JSON from file and mark dirty if file has been changed
+
+    private readonly string path;
+    private readonly FileSystemWatcher watcher;
+
     private void ReadFile(object sender, FileSystemEventArgs e) => this.rootNode = null;
 
-    private void ReadFile()
+    private JObject ReadFile()
     {
         this.watcher.EnableRaisingEvents = false;
 
-        using var file = File.Open(this.path!, FileMode.Open);
+        using var file = File.Open(this.path, FileMode.Open);
         try
         {
             using var stream = new StreamReader(file);
             using var reader = new JsonTextReader(stream);
 
-            this.rootNode = JObject.Load(reader);
+            return JObject.Load(reader);
         }
         finally
         {
@@ -46,29 +82,47 @@ public sealed class JsonFsRootProvider
         }
     }
 
-    public static JsonFsRootProvider FromFile(string path)
+    #endregion Read JSON from file and mark dirty if file has been changed
+
+    #region Save JSON to file
+
+    private IDisposable? pendingSave;
+
+    public IDisposable BeginModify()
     {
-        ArgumentNullException.ThrowIfNull(path);
+        if (this.pendingSave is null)
+        {
+            // switch the notifications off for now.
+            // accessing the file raises a notification already.
+            // maybe exclude this  case in the future. Might be too much b/c just reading
+            // it is not an change event
+            this.watcher.EnableRaisingEvents = false;
 
-        var watcher = new FileSystemWatcher();
-        watcher.Path = Path.GetDirectoryName(path);
-        watcher.Filter = Path.GetFileName(path);
-        watcher.NotifyFilter = NotifyFilters.LastWrite;
-
-        var provider = new JsonFsRootProvider(path, watcher);
-
-        provider.ReadFile();
-
-        return provider;
+            return (this.pendingSave = new DisposableAutoSave(
+                jsonFsProvider: this,
+                fileStream: File.Open(path: this.path, WriteJsonFileMode)));
+        }
+        else return new DisposableDummy();
     }
 
-    public JObject? GetRoot()
+    internal void WriteFile(FileStream fileStream)
     {
-        if (this.rootNode is null)
-            this.ReadFile();
+        this.watcher.EnableRaisingEvents = false;
+        try
+        {
+            using (fileStream)
+            {
+                using var streamWriter = new StreamWriter(fileStream);
 
-        return this.rootNode;
+                streamWriter.Write(this.GetRootJObject()!.ToString());
+            }
+        }
+        finally
+        {
+            this.pendingSave = null;
+            this.watcher.EnableRaisingEvents = true;
+        }
     }
 
-    public IDisposable Lock() => File.OpenHandle(path: this.path, mode: FileMode.OpenOrCreate, access: FileAccess.ReadWrite, share: FileShare.None);
+    #endregion Save JSON to file
 }
