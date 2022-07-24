@@ -45,8 +45,8 @@ Currently arrays are not supported nicely. They are shown as values (properties)
 
 Features to come:
 
-[ ] Support for arrays as values or child containers
-[ ] Download from powershell gallery
+- [ ] Support for arrays as values or child containers
+- [ ] Download from powershell gallery
 
 ## Building the module
 
