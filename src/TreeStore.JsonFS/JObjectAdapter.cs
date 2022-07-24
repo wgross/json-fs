@@ -313,9 +313,18 @@ public sealed class JObjectAdapter : IServiceProvider,
         using var handle = this.BeginModify(provider);
 
         foreach (var p in properties.Properties)
+        {
             if (this.payload.TryGetValue(p.Name, out var value))
+            {
                 if (value.Type != JTokenType.Object)
                     this.IfValueSemantic(p.Value, jt => this.payload[p.Name] = jt);
+            }
+            else if (provider.Force.ToBool())
+            {
+                // force parameter is given create the property if possible
+                this.CreateItemProperty(p.Name, p.Value);
+            }
+        }
     }
 
     private void IfValueSemantic(object? value, Action<JToken> then)
@@ -414,6 +423,11 @@ public sealed class JObjectAdapter : IServiceProvider,
     {
         using var handle = this.BeginModify(provider);
 
+        this.CreateItemProperty(propertyName, value);
+    }
+
+    private void CreateItemProperty(string propertyName, object? value)
+    {
         if (!this.payload.TryGetValue(propertyName, out var _))
             this.IfValueSemantic(value, jt => this.payload[propertyName] = jt);
     }

@@ -78,7 +78,7 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
     #endregion Clear-ItemProperty -Path -Name
 
-    #region Set-ItemProperty -Path -Name
+    #region Set-ItemProperty -Path -Name -Force
 
     [Fact]
     public void Powershell_sets_item_property()
@@ -106,5 +106,31 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         Assert.Equal("text", result.Property<string>("data"));
     }
 
-    #endregion Set-ItemProperty -Path -Name
+    [Fact]
+    public void Powershell_creates_item_property_on_Force()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject
+        {
+        });
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Set-ItemProperty")
+            .AddParameter("Path", @"test:\")
+            .AddParameter("Name", "data")
+            .AddParameter("Value", "text")
+            .AddParameter("Force")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // value has changed
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal("text", result.Property<string>("data"));
+    }
+
+    #endregion Set-ItemProperty -Path -Name -Force
 }
