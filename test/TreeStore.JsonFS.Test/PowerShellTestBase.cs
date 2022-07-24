@@ -35,9 +35,7 @@ public class PowerShellTestBase : IDisposable
     {
         File.WriteAllText(this.JsonFilePath, payload.ToString());
 
-        JsonFsCmdletProvider.RootNodeProvider = JsonFsRootProvider.FromFile(this.JsonFilePath);
-
-        this.ArrangeFileSystem();
+        this.ArrangeFileSystem(Path.GetFullPath(this.JsonFilePath));
 
         return payload;
     }
@@ -45,7 +43,7 @@ public class PowerShellTestBase : IDisposable
     /// <summary>
     /// Loads the module from the tests bin directory and creates a drive 'test'.
     /// </summary>
-    protected void ArrangeFileSystem()
+    protected void ArrangeFileSystem(string path)
     {
         this.PowerShell.Commands.Clear();
         this.PowerShell
@@ -55,7 +53,7 @@ public class PowerShellTestBase : IDisposable
             .AddCommand("New-PSDrive")
             .AddParameter("PSProvider", "JsonFS")
             .AddParameter("Name", "test")
-            .AddParameter("Root", "")
+            .AddParameter("Root", $"{path}")
             .Invoke();
         this.PowerShell.Commands.Clear();
     }
