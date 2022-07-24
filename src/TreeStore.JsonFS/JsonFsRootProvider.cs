@@ -14,18 +14,22 @@ public sealed class JsonFsRootProvider
 
     private const FileMode WriteJsonFileMode = FileMode.OpenOrCreate | FileMode.Truncate;
 
+    private const FileMode ReadJsonFileMode = FileMode.OpenOrCreate;
+
     public static JsonFsRootProvider FromFile(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
 
+        var fullPath = Path.GetFullPath(path);
+
         var watcher = new FileSystemWatcher();
-        watcher.Path = Path.GetDirectoryName(path)!;
-        watcher.Filter = Path.GetFileName(path);
+        watcher.Path = Path.GetDirectoryName(fullPath)!;
+        watcher.Filter = Path.GetFileName(fullPath);
         watcher.NotifyFilter = NotifyFilters.LastWrite;
 
-        var provider = new JsonFsRootProvider(path, watcher);
+        var provider = new JsonFsRootProvider(fullPath, watcher);
 
-        provider.ReadFile();
+        provider.CreateOrReadFile();
 
         return provider;
     }
@@ -37,7 +41,7 @@ public sealed class JsonFsRootProvider
 
         this.path = path;
         this.watcher = watcher;
-        this.watcher.Changed += this.ReadFile;
+        this.watcher.Changed += this.FileHasChanged;
     }
 
     #region Provide the root node to the Cmdlet provider
@@ -61,13 +65,39 @@ public sealed class JsonFsRootProvider
     private readonly string path;
     private readonly FileSystemWatcher watcher;
 
-    private void ReadFile(object sender, FileSystemEventArgs e) => this.rootNode = null;
+    private void FileHasChanged(object sender, FileSystemEventArgs e) => this.rootNode = null;
+
+    private JObject CreateOrReadFile()
+    {
+        if (File.Exists(this.path))
+            return this.ReadFile();
+        else
+            return this.CreateFile();
+    }
+
+    private JObject CreateFile()
+    {
+        var newRoot = new JObject();
+
+        try
+        {
+            this.watcher.EnableRaisingEvents = false;
+            File.WriteAllText(this.path, newRoot.ToString());
+        }
+        finally
+        {
+            this.watcher.EnableRaisingEvents = true;
+        }
+
+        return newRoot;
+    }
 
     private JObject ReadFile()
     {
         this.watcher.EnableRaisingEvents = false;
 
-        using var file = File.Open(this.path, FileMode.Open);
+        using var file = File.Open(this.path, ReadJsonFileMode);
+
         try
         {
             using var stream = new StreamReader(file);
