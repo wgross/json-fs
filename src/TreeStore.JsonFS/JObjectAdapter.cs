@@ -22,7 +22,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region Write the JSON file after modification
 
-    private IDisposable BeginModify(CmdletProvider cmdletProvider)
+    private IDisposable BeginModify(ICmdletProvider cmdletProvider)
     {
         if (cmdletProvider is IJsonFsRootNodeModification jsonFsRootNodeModification)
             return jsonFsRootNodeModification.BeginModify();
@@ -45,7 +45,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IGetItem
 
-    PSObject IGetItem.GetItem(CmdletProvider provider)
+    PSObject IGetItem.GetItem(ICmdletProvider provider)
     {
         var pso = new PSObject();
         foreach (var property in this.payload.Children().OfType<JProperty>())
@@ -68,7 +68,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region ISetItem
 
-    void ISetItem.SetItem(CmdletProvider provider, object? value)
+    void ISetItem.SetItem(ICmdletProvider provider, object? value)
     {
         using var handle = this.BeginModify(provider);
 
@@ -92,7 +92,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IClearItem
 
-    void IClearItem.ClearItem(CmdletProvider provider)
+    void IClearItem.ClearItem(ICmdletProvider provider)
     {
         using var handle = this.BeginModify(provider);
 
@@ -104,12 +104,12 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IGetChildItem
 
-    bool IGetChildItem.HasChildItems(CmdletProvider provider)
+    bool IGetChildItem.HasChildItems(ICmdletProvider provider)
     {
         return this.payload.Children().OfType<JProperty>().Any();
     }
 
-    IEnumerable<ProviderNode> IGetChildItem.GetChildItems(CmdletProvider provider)
+    IEnumerable<ProviderNode> IGetChildItem.GetChildItems(ICmdletProvider provider)
     {
         foreach (var property in this.payload.Children().OfType<JProperty>())
             if (property.Value is JObject jObject)
@@ -120,7 +120,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IRemoveChildItem
 
-    void IRemoveChildItem.RemoveChildItem(CmdletProvider provider, string childName, bool recurse)
+    void IRemoveChildItem.RemoveChildItem(ICmdletProvider provider, string childName, bool recurse)
     {
         using var handle = this.BeginModify(provider);
 
@@ -133,7 +133,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region INewChildItem
 
-    NewChildItemResult INewChildItem.NewChildItem(CmdletProvider provider, string childName, string? itemTypeName, object? newItemValue)
+    NewChildItemResult INewChildItem.NewChildItem(ICmdletProvider provider, string childName, string? itemTypeName, object? newItemValue)
     {
         if (this.payload.TryGetValue(childName, out var _))
             throw new InvalidOperationException($"A property(name='{childName}') already exists");
@@ -169,7 +169,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IRenameChildItem
 
-    void IRenameChildItem.RenameChildItem(CmdletProvider provider, string childName, string newName)
+    void IRenameChildItem.RenameChildItem(ICmdletProvider provider, string childName, string newName)
     {
         using var handle = this.BeginModify(provider);
 
@@ -183,7 +183,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region ICopyChildItem
 
-    CopyChildItemResult ICopyChildItem.CopyChildItem(CmdletProvider provider, ProviderNode nodeToCopy, string[] destination)
+    CopyChildItemResult ICopyChildItem.CopyChildItem(ICmdletProvider provider, ProviderNode nodeToCopy, string[] destination)
     {
         using var handle = this.BeginModify(provider);
 
@@ -200,7 +200,7 @@ public sealed class JObjectAdapter : IServiceProvider,
         return null;
     }
 
-    private CopyChildItemResult CopyNodeUnderNewParent(CmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToCopy)
+    private CopyChildItemResult CopyNodeUnderNewParent(ICmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToCopy)
     {
         var newParent = new JObject();
         if (this.payload.TryAdd(parentName, newParent))
@@ -227,7 +227,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region ICopyChildItemRecursive
 
-    CopyChildItemResult ICopyChildItemRecursive.CopyChildItemRecursive(CmdletProvider provider, ProviderNode nodeToCopy, string[] destination)
+    CopyChildItemResult ICopyChildItemRecursive.CopyChildItemRecursive(ICmdletProvider provider, ProviderNode nodeToCopy, string[] destination)
     {
         using var handle = this.BeginModify(provider);
 
@@ -244,7 +244,7 @@ public sealed class JObjectAdapter : IServiceProvider,
         return new(Created: false, Name: nodeToCopy.Name, NodeServices: null);
     }
 
-    private CopyChildItemResult CopyNodeUnderNewParentRecursive(CmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToCopy)
+    private CopyChildItemResult CopyNodeUnderNewParentRecursive(ICmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToCopy)
     {
         var newParent = new JObject();
         if (this.payload.TryAdd(parentName, newParent))
@@ -257,7 +257,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IMoveChildItem
 
-    MoveChildItemResult IMoveChildItem.MoveChildItem(CmdletProvider provider, ContainerNode parentOfNodeToMove, ProviderNode nodeToMove, string[] destination)
+    MoveChildItemResult IMoveChildItem.MoveChildItem(ICmdletProvider provider, ContainerNode parentOfNodeToMove, ProviderNode nodeToMove, string[] destination)
     {
         using var handle = this.BeginModify(provider);
 
@@ -273,7 +273,7 @@ public sealed class JObjectAdapter : IServiceProvider,
         return new(Created: false, Name: nodeToMove.Name, NodeServices: null);
     }
 
-    private MoveChildItemResult MoveNodeUnderNewParentNode(CmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToMove, ContainerNode parentOfNodeToMove)
+    private MoveChildItemResult MoveNodeUnderNewParentNode(ICmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToMove, ContainerNode parentOfNodeToMove)
     {
         var parentJobject = new JObject();
         if (this.payload.TryAdd(parentName, parentJobject))
@@ -294,7 +294,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IClearItemProperty
 
-    void IClearItemProperty.ClearItemProperty(CmdletProvider provider, IEnumerable<string> propertyToClear)
+    void IClearItemProperty.ClearItemProperty(ICmdletProvider provider, IEnumerable<string> propertyToClear)
     {
         using var handle = this.BeginModify(provider);
 
@@ -308,7 +308,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region ISetItemPorperty
 
-    void ISetItemProperty.SetItemProperty(CmdletProvider provider, PSObject properties)
+    void ISetItemProperty.SetItemProperty(ICmdletProvider provider, PSObject properties)
     {
         using var handle = this.BeginModify(provider);
 
@@ -364,7 +364,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IRemoveItemProperty
 
-    void IRemoveItemProperty.RemoveItemProperty(CmdletProvider provider, string propertyName)
+    void IRemoveItemProperty.RemoveItemProperty(ICmdletProvider provider, string propertyName)
     {
         using var handle = this.BeginModify(provider);
 
@@ -377,7 +377,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region ICopyItemProperty
 
-    void ICopyItemProperty.CopyItemProperty(CmdletProvider provider, ProviderNode sourceNode, string sourceProperty, string destinationProperty)
+    void ICopyItemProperty.CopyItemProperty(ICmdletProvider provider, ProviderNode sourceNode, string sourceProperty, string destinationProperty)
     {
         using var handle = this.BeginModify(provider);
 
@@ -397,7 +397,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IMoveItemProperty
 
-    void IMoveItemProperty.MoveItemProperty(CmdletProvider provider, ProviderNode sourceNode, string sourceProperty, string destinationProperty)
+    void IMoveItemProperty.MoveItemProperty(ICmdletProvider provider, ProviderNode sourceNode, string sourceProperty, string destinationProperty)
     {
         using var handle = this.BeginModify(provider);
 
@@ -419,7 +419,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region INewItemProperty
 
-    void INewItemProperty.NewItemProperty(CmdletProvider provider, string propertyName, string? propertyTypeName, object? value)
+    void INewItemProperty.NewItemProperty(ICmdletProvider provider, string propertyName, string? propertyTypeName, object? value)
     {
         using var handle = this.BeginModify(provider);
 
@@ -436,7 +436,7 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IRenameItemProperty
 
-    void IRenameItemProperty.RenameItemProperty(CmdletProvider provider, string sourceProperty, string destinationProperty)
+    void IRenameItemProperty.RenameItemProperty(ICmdletProvider provider, string sourceProperty, string destinationProperty)
     {
         using var handle = this.BeginModify(provider);
 

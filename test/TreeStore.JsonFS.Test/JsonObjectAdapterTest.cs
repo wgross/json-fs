@@ -1,20 +1,20 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Management.Automation.Provider;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Nodes;
+using TreeStore.Core.Providers;
 
 namespace TreeStore.JsonFS.Test;
 
 public class JObjectAdapterTest
 {
     private readonly MockRepository mocks = new MockRepository(MockBehavior.Strict);
-    private readonly Mock<CmdletProvider> providerMock;
+    private readonly Mock<ICmdletProvider> providerMock;
     private readonly Mock<IDisposable> disopsableMock;
 
     public JObjectAdapterTest()
     {
-        this.providerMock = this.mocks.Create<CmdletProvider>();
+        this.providerMock = this.mocks.Create<ICmdletProvider>();
         this.disopsableMock = this.mocks.Create<IDisposable>();
     }
 
@@ -51,6 +51,29 @@ public class JObjectAdapterTest
         // value properties are note properties in the PSObject
         Assert.Equal(1, result!.Property<long>("value"));
         Assert.Equal(new object[] { 1L, 2L }, result!.Property<object[]>("array"));
+
+        // object properties are skipped
+        Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "object"));
+    }
+
+    [Fact]
+    public void GetItem_creates_PSObject_of_values_only_from_JArray()
+    {
+        // ARRANGE
+        var node = new JObjectAdapter(new JObject()
+        {
+            ["value"] = new JValue(1),
+            ["array"] = new JArray(new JValue(1), new JObject()),
+            ["object"] = new JObject(),
+        });
+
+        // ACT
+        var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
+
+        // ASSERT
+        // value properties are note properties in the PSObject
+        Assert.Equal(1, result!.Property<long>("value"));
+        Assert.Equal(new object[] { 1L }, result!.Property<object[]>("array"));
 
         // object properties are skipped
         Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "object"));
@@ -1075,19 +1098,50 @@ public class JObjectAdapterTest
             ["data1"] = "text",
         };
         var rootNode = new JObjectAdapter(root);
+        this.providerMock
+            .Setup(p => p.Force)
+            .Returns(false);
 
         this.ArrangeBeginModification();
 
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
-            unkown = "changed",
+            unknown = "changed",
         }));
 
         // ASSERT
         Assert.True(root.TryGetValue("data1", out var v1));
         Assert.Equal("text", v1);
         Assert.False(root.TryGetValue("unknown", out var _));
+    }
+
+    [Fact]
+    public void SetItemProperty_creates_new_property_on_force()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+        };
+        var rootNode = new JObjectAdapter(root);
+        this.providerMock
+            .Setup(p => p.Force)
+            .Returns(true);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
+        {
+            unknown = "changed",
+        }));
+
+        // ASSERT
+        Assert.True(root.TryGetValue("data1", out var v1));
+        Assert.Equal("text", v1);
+        Assert.True(root.TryGetValue("unknown", out var v2));
+        Assert.Equal("changed", v2);
     }
 
     [Fact]

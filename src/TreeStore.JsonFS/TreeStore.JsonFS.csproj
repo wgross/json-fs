@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TreeStore.Core" Version="0.6.3" />
+    <PackageReference Include="TreeStore.Core" Version="0.6.4" />
 	<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
