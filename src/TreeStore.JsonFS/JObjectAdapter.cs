@@ -4,7 +4,7 @@
 /// Implements an adapter between TreeStores ProviderNode and <see cref="Newtonsoft.Json.Linq.JObject"/>.
 /// It implements <see cref="IServiceProvider"/> as a generic interface to provider the TreeStore node capabilities.
 /// </summary>
-public sealed class JObjectAdapter : IServiceProvider,
+public sealed class JObjectAdapter : JAdapterBase,
     // ItemCmdletProvider
     IGetItem, ISetItem, IClearItem,
     // ContainerCmdletProvider
@@ -18,7 +18,69 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     public JObjectAdapter(JObject payload) => this.payload = payload;
 
-    private IEnumerable<JProperty> ValueProperties(JObject jobject) => jobject.Properties().Where(p => p.Value.Type != JTokenType.Object);
+    #region Define value semantics
+
+    private static bool IsValueProperty(JProperty property) => IsValueToken(property.Value);
+
+    private static bool IsValueToken(JToken token) => token switch
+    {
+        JObject => false,
+        JArray jarray => IsValueArray(jarray),
+
+        _ => true
+    };
+
+    private static bool IsValueArray(JArray jarray)
+    {
+        if (!jarray.HasValues)
+            return true; // empty array is value array until proven otherwise
+
+        return IsValueToken(jarray.First());
+    }
+
+    #endregion Define value semantics
+
+    #region Query properties holding value semantics
+
+    private IEnumerable<JProperty> ValueProperties() => this.ValueProperties(this.payload);
+
+    private IEnumerable<JProperty> ValueProperties(JObject jobject) => jobject.Properties().Where(IsValueProperty);
+
+    private JProperty? ValueProperty(string name)
+    {
+        var property = this.payload.Property(name);
+        if (property is null)
+            return null;
+
+        return IsValueProperty(property) ? property : null;
+    }
+
+    #endregion Query properties holding value semantics
+
+    #region Define child semantics
+
+    private static bool IsChildProperty(JProperty property) => !IsValueProperty(property);
+
+    private static bool IsChildToken(JToken token) => !IsValueToken(token);
+
+    #endregion Define child semantics
+
+    #region Query properties holding child node semantics
+
+    private IEnumerable<JProperty> ChildProperties() => this.ChildProperties(this.payload);
+
+    private IEnumerable<JProperty> ChildProperties(JObject jobject) => jobject.Properties().Where(IsChildProperty);
+
+    private JProperty? ChildProperty(string name)
+    {
+        var property = this.payload.Property(name);
+        if (property is null)
+            return null;
+
+        return IsChildProperty(property) ? property : null;
+    }
+
+    #endregion Query properties holding child node semantics
 
     #region Write the JSON file after modification
 
@@ -48,7 +110,7 @@ public sealed class JObjectAdapter : IServiceProvider,
     PSObject IGetItem.GetItem(ICmdletProvider provider)
     {
         var pso = new PSObject();
-        foreach (var property in this.payload.Children().OfType<JProperty>())
+        foreach (var property in this.ValueProperties())
         {
             switch (property.Value)
             {
@@ -96,7 +158,7 @@ public sealed class JObjectAdapter : IServiceProvider,
     {
         using var handle = this.BeginModify(provider);
 
-        foreach (var p in this.ValueProperties(this.payload))
+        foreach (var p in this.ValueProperties())
             p.Value = JValue.CreateNull();
     }
 
@@ -104,16 +166,23 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     #region IGetChildItem
 
-    bool IGetChildItem.HasChildItems(ICmdletProvider provider)
-    {
-        return this.payload.Children().OfType<JProperty>().Any();
-    }
+    bool IGetChildItem.HasChildItems(ICmdletProvider provider) => this.ChildProperties().Any();
 
     IEnumerable<ProviderNode> IGetChildItem.GetChildItems(ICmdletProvider provider)
     {
-        foreach (var property in this.payload.Children().OfType<JProperty>())
-            if (property.Value is JObject jObject)
-                yield return new ContainerNode(provider, property.Name, new JObjectAdapter(jObject));
+        foreach (var property in this.ChildProperties())
+        {
+            switch (property.Value)
+            {
+                case JObject jObject:
+                    yield return new ContainerNode(provider, property.Name, new JObjectAdapter(jObject));
+                    break;
+
+                case JArray jArray:
+                    yield return new ContainerNode(provider, property.Name, new JArrayAdapter(jArray));
+                    break;
+            }
+        }
     }
 
     #endregion IGetChildItem
@@ -124,9 +193,23 @@ public sealed class JObjectAdapter : IServiceProvider,
     {
         using var handle = this.BeginModify(provider);
 
-        if (this.payload.TryGetValue(childName, out var jtoken))
-            if (jtoken is JObject)
-                this.payload.Remove(childName);
+        if (!this.payload.TryGetValue(childName, out var jtoken) || IsValueToken(jtoken))
+            return;
+
+        if (!recurse)
+        {
+            // remove empty children only
+
+            if (jtoken is JArray jarray)
+                if (jarray.Any())
+                    return; // don't remove non empty array w/o recurse=true
+
+            if (jtoken is JObject jobject)
+                if (this.ChildProperties(jobject).Any())
+                    return; // don't remove non empty object w/o recurse=true
+        }
+
+        this.payload.Remove(childName);
     }
 
     #endregion IRemoveChildItem
@@ -173,7 +256,7 @@ public sealed class JObjectAdapter : IServiceProvider,
     {
         using var handle = this.BeginModify(provider);
 
-        var existingPropery = this.payload.Property(childName);
+        var existingPropery = this.ChildProperty(childName);
         if (existingPropery is not null)
             if (this.payload.TryAdd(newName, existingPropery.Value))
                 existingPropery.Remove();
@@ -196,6 +279,7 @@ public sealed class JObjectAdapter : IServiceProvider,
                 _ => this.CopyNodeUnderNewParent(provider, destination[0], destination[1..], nodeToCopy)
             };
         }
+        // TODO: extend to JArray
 
         return null;
     }
@@ -299,9 +383,11 @@ public sealed class JObjectAdapter : IServiceProvider,
         using var handle = this.BeginModify(provider);
 
         foreach (var propertyName in propertyToClear)
-            if (this.payload.TryGetValue(propertyName, out var value))
-                if (value.Type != JTokenType.Object)
-                    this.payload[propertyName] = JValue.CreateNull();
+        {
+            var valueProperty = this.ValueProperty(propertyName);
+            if (valueProperty is not null)
+                this.payload[propertyName] = JValue.CreateNull();
+        }
     }
 
     #endregion IClearItemProperty
@@ -314,14 +400,15 @@ public sealed class JObjectAdapter : IServiceProvider,
 
         foreach (var p in properties.Properties)
         {
-            if (this.payload.TryGetValue(p.Name, out var value))
+            var valueProperty = this.ValueProperty(p.Name);
+            if (valueProperty is not null)
             {
-                if (value.Type != JTokenType.Object)
-                    this.IfValueSemantic(p.Value, jt => this.payload[p.Name] = jt);
+                this.IfValueSemantic(p.Value, jt => valueProperty.Value = jt);
             }
             else if (provider.Force.ToBool())
             {
                 // force parameter is given create the property if possible
+                // CreateItemProperty doesn't overwrite existing properties
                 this.CreateItemProperty(p.Name, p.Value);
             }
         }
@@ -366,11 +453,13 @@ public sealed class JObjectAdapter : IServiceProvider,
 
     void IRemoveItemProperty.RemoveItemProperty(ICmdletProvider provider, string propertyName)
     {
+        var valueProperty = this.ValueProperty(propertyName);
+        if (valueProperty is null)
+            return;
+
         using var handle = this.BeginModify(provider);
 
-        if (this.payload.TryGetValue(propertyName, out var value))
-            if (value.Type != JTokenType.Object)
-                value.Parent!.Remove();
+        this.payload.Remove(propertyName);
     }
 
     #endregion IRemoveItemProperty

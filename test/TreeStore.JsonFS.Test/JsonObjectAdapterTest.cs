@@ -40,7 +40,9 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject()
         {
             ["value"] = new JValue(1),
-            ["array"] = new JArray(new JValue(1), new JValue(2)),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
             ["object"] = new JObject(),
         });
 
@@ -50,33 +52,14 @@ public class JObjectAdapterTest
         // ASSERT
         // value properties are note properties in the PSObject
         Assert.Equal(1, result!.Property<long>("value"));
-        Assert.Equal(new object[] { 1L, 2L }, result!.Property<object[]>("array"));
+        Assert.Equal(new object[] { 1L, 2L }, result!.Property<object[]>("valueArray"));
+
+        // empty array is value array
+        Assert.Empty(result!.Property<object[]>("emptyArray"));
 
         // object properties are skipped
         Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "object"));
-    }
-
-    [Fact]
-    public void GetItem_creates_PSObject_of_values_only_from_JArray()
-    {
-        // ARRANGE
-        var node = new JObjectAdapter(new JObject()
-        {
-            ["value"] = new JValue(1),
-            ["array"] = new JArray(new JValue(1), new JObject()),
-            ["object"] = new JObject(),
-        });
-
-        // ACT
-        var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
-
-        // ASSERT
-        // value properties are note properties in the PSObject
-        Assert.Equal(1, result!.Property<long>("value"));
-        Assert.Equal(new object[] { 1L }, result!.Property<object[]>("array"));
-
-        // object properties are skipped
-        Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "object"));
+        Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "objectArray"));
     }
 
     #endregion IGetItem
@@ -98,8 +81,9 @@ public class JObjectAdapterTest
         var newData = new JObject()
         {
             ["object"] = new JObject(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
             ["value"] = new JValue(1),
-            ["array"] = new JArray(1, 2)
+            ["valueArray"] = new JArray(1, 2)
         };
 
         // ACT
@@ -111,13 +95,15 @@ public class JObjectAdapterTest
         var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Equal(1, psobject!.Property<long>("value"));
-        Assert.Equal(new object[] { 1, 2 }, psobject!.Property<object[]>("array"));
+        Assert.Equal(new object[] { 1, 2 }, psobject!.Property<object[]>("valueArray"));
 
         // value2 was removed
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
 
-        // object was added
-        Assert.Equal("object", node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Single().Name);
+        // object was added and objectArray
+        Assert.Equal(
+            expected: new[] { "object", "objectArray" },
+            actual: node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Select(c => c.Name));
     }
 
     [Fact]
@@ -136,7 +122,7 @@ public class JObjectAdapterTest
         {
             ["object"] = new JObject(),
             ["value"] = new JValue(1),
-            ["array"] = new JArray(1, 2)
+            ["valueArray"] = new JArray(1, 2)
         };
 
         // ACT
@@ -148,7 +134,7 @@ public class JObjectAdapterTest
         var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Equal(1, psobject!.Property<long>("value"));
-        Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("array"));
+        Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("valueArray"));
 
         // value2 was removed
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
@@ -203,12 +189,13 @@ public class JObjectAdapterTest
         var jnode = new JObject()
         {
             ["value"] = new JValue(1),
-            ["array"] = new JArray(new JValue(1), new JValue(2)),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
             ["object"] = new JObject
             {
                 ["value"] = new JValue(2),
-                ["array"] = new JArray(new JValue(3), new JValue(4))
-            }
+                ["valueArray"] = new JArray(new JValue(3), new JValue(4))
+            },
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
         };
 
         var node = new JObjectAdapter(jnode);
@@ -220,18 +207,22 @@ public class JObjectAdapterTest
         // property and array are null
         Assert.True(jnode.TryGetValue("value", out var property));
         Assert.Equal(JTokenType.Null, property!.Type);
-        Assert.True(jnode.TryGetValue("array", out var array));
+        Assert.True(jnode.TryGetValue("valueArray", out var array));
         Assert.Equal(JTokenType.Null, array!.Type);
 
         // object is still there
         Assert.True(jnode.TryGetValue("object", out var jobject));
         Assert.NotNull(jobject);
 
+        // objectArray is still there
+        Assert.True(jnode.TryGetValue("objectArray", out var jarray));
+        Assert.NotNull(jarray);
+
         // item properties are there but 'null'
         var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Null(psobject!.Property<object>("value"));
-        Assert.Null(psobject!.Property<object>("array"));
+        Assert.Null(psobject!.Property<object>("valueArray"));
     }
 
     #endregion IClearItem
@@ -245,12 +236,31 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject()
         {
             ["value"] = new JValue(1),
-            ["array"] = new JArray(new JValue(1), new JValue(2)),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
             ["object"] = new JObject
             {
                 ["value"] = new JValue(2),
-                ["array"] = new JArray(new JValue(3), new JValue(4))
+                ["valueArray"] = new JArray(new JValue(3), new JValue(4))
             }
+        });
+
+        // ACT
+        var result = ((IGetChildItem)node).HasChildItems(this.providerMock.Object);
+
+        // ASSERT
+        // the node has child nodes.
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasChildItems_is_true_for_JObject_array()
+    {
+        // ARRANGE
+        var node = new JObjectAdapter(new JObject()
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
         });
 
         // ACT
@@ -268,11 +278,11 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject()
         {
             ["value"] = new JValue(1),
-            ["array"] = new JArray(new JValue(1), new JValue(2)),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
             ["object"] = new JObject
             {
                 ["value"] = new JValue(2),
-                ["array"] = new JArray(new JValue(3), new JValue(4))
+                ["valueArray"] = new JArray(new JValue(3), new JValue(4))
             }
         });
 
@@ -285,8 +295,32 @@ public class JObjectAdapterTest
         var pso = result.Single().GetItem(this.providerMock.Object);
 
         // the child properties are note properties of the PSObject
+        Assert.Equal("object", pso.Property<string>("PSChildName"));
         Assert.Equal(2, pso.Property<long>("value"));
-        Assert.Equal(new object[] { 3L, 4L }, pso.Property<object[]>("array"));
+        Assert.Equal(new object[] { 3L, 4L }, pso.Property<object[]>("valueArray"));
+    }
+
+    [Fact]
+    public void GetChildItem_creates_PSObject_from_JObject_array()
+    {
+        // ARRANGE
+        var node = new JObjectAdapter(new JObject()
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+        });
+
+        // ACT
+        var result = ((IGetChildItem)node).GetChildItems(this.providerMock.Object).ToArray();
+
+        // ASSERT
+        Assert.Single(result);
+
+        var pso = result.Single().GetItem(this.providerMock.Object);
+
+        // the child properties are note properties of the PSObject
+        Assert.Equal("objectArray", pso.Property<string>("PSChildName"));
     }
 
     [Fact]
@@ -296,7 +330,7 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject
         {
             ["value"] = new JValue(1),
-            ["array"] = new JArray(new JValue(1), new JValue(2)),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
         });
 
         // ACT
@@ -333,6 +367,72 @@ public class JObjectAdapterTest
         // ASSERT
         // the child node is gone
         Assert.False(underlying.TryGetValue("container1", out var _));
+    }
+
+    [Fact]
+    public void RemoveChildItem_removing_JObject_item_fails_with_childItems()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var underlying = new JObject
+        {
+            ["container1"] = new JObject(new JProperty("object", new JObject())),
+            ["property"] = new JValue("property"),
+        };
+
+        var node = new JObjectAdapter(underlying);
+
+        // ACT
+        ((IRemoveChildItem)node).RemoveChildItem(provider: this.providerMock.Object, "container1", recurse: false);
+
+        // ASSERT
+        // the child node is gone
+        Assert.True(underlying.TryGetValue("container1", out var _));
+    }
+
+    [Fact]
+    public void RemoveChildItem_removes_JObject_array_item()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var underlying = new JObject
+        {
+            ["objectArray"] = new JArray(new JObject()),
+            ["property"] = new JValue("property"),
+        };
+
+        var node = new JObjectAdapter(underlying);
+
+        // ACT
+        ((IRemoveChildItem)node).RemoveChildItem(provider: this.providerMock.Object, "objectArray", recurse: true);
+
+        // ASSERT
+        // the child node is gone
+        Assert.False(underlying.TryGetValue("objectArray", out var _));
+    }
+
+    [Fact]
+    public void RemoveChildItem_removing_JObject_array_item_fails_with_childItems()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var underlying = new JObject
+        {
+            ["objectArray"] = new JArray(new JObject()),
+            ["property"] = new JValue("property"),
+        };
+
+        var node = new JObjectAdapter(underlying);
+
+        // ACT
+        ((IRemoveChildItem)node).RemoveChildItem(provider: this.providerMock.Object, "objectArray", recurse: false);
+
+        // ASSERT
+        // the child node is gone
+        Assert.True(underlying.TryGetValue("objectArray", out var _));
     }
 
     [Theory]
@@ -478,25 +578,47 @@ public class JObjectAdapterTest
     #region IRenameChildItem
 
     [Fact]
-    public void RenameChildItem_renames_property()
+    public void RenameChildItem_renames_JObject_property()
     {
         // ARRANGE
         this.ArrangeBeginModification();
 
         var underlying = new JObject
         {
-            ["container1"] = new JObject(),
+            ["object"] = new JObject(),
         };
 
         var node = new JObjectAdapter(underlying);
 
         // ACT
-        ((IRenameChildItem)node).RenameChildItem(this.providerMock.Object, "container1", "newname");
+        ((IRenameChildItem)node).RenameChildItem(this.providerMock.Object, "object", "newname");
 
         // ASSERT
-        // newname is there, container1 isn't
+        // newname is there, object isn't
         Assert.True(underlying.TryGetValue("newname", out var _));
-        Assert.False(underlying.TryGetValue("container1", out var _));
+        Assert.False(underlying.TryGetValue("object", out var _));
+    }
+
+    [Fact]
+    public void RenameChildItem_renames_JArray_property()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var underlying = new JObject
+        {
+            ["objectArray"] = new JArray(new JObject()),
+        };
+
+        var node = new JObjectAdapter(underlying);
+
+        // ACT
+        ((IRenameChildItem)node).RenameChildItem(this.providerMock.Object, "objectArray", "newname");
+
+        // ASSERT
+        // newname is there, objectArray isn't
+        Assert.True(underlying.TryGetValue("newname", out var _));
+        Assert.False(underlying.TryGetValue("objectArray", out var _));
     }
 
     [Fact]
@@ -550,7 +672,7 @@ public class JObjectAdapterTest
     #region ICopyChildItem
 
     [Fact]
-    public void CopyChildItem_copies_to_node_with_source_name()
+    public void CopyChildItem_copies_JObject_to_node_with_source_name()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -562,6 +684,45 @@ public class JObjectAdapterTest
                 ["data"] = 1,
                 ["grandchild"] = new JObject()
             },
+            ["child2"] = new JObject()
+        };
+        var nodeToCopy = root.Property("child1")!.Value as JObject;
+
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
+        var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
+
+        // ACT
+        // copy child1 under child2 as 'child1'
+        var result = dst.GetRequiredService<ICopyChildItem>().CopyChildItem(
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
+            destination: Array.Empty<string>());
+
+        // ASSERT
+        // source is still there
+        Assert.NotNull(root.ChildObject("child1"));
+
+        // child1 was created under child2
+        Assert.True(result.Created);
+        Assert.NotNull(root.ChildObject("child2")!.ChildObject("child1"));
+        Assert.NotSame(nodeToCopy, root.ChildObject("child2").ChildObject("child1"));
+
+        // property was copied
+        Assert.Equal(1, root.ChildObject("child2")!.ChildObject("child1")!["data"]!.Value<int>());
+
+        // copy is shallow: grandchild is missing
+        Assert.False(root.ChildObject("child2").ChildObject("child1").TryGetValue("grandchild", out var _));
+    }
+
+    [Fact]
+    public void CopyChildItem_copies_JArray_to_node_with_source_name()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject
+        {
+            ["child1"] = new JArray(new JObject()),
             ["child2"] = new JObject()
         };
         var nodeToCopy = root.Property("child1")!.Value as JObject;
@@ -982,7 +1143,7 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void ClearItemProperty_ignores_child_node()
+    public void ClearItemProperty_ignores_child_object_node()
     {
         // ARRANGE
         var root = new JObject
@@ -1000,6 +1161,27 @@ public class JObjectAdapterTest
         // the child node is untouched
         Assert.True(root.TryGetValue("data", out var value));
         Assert.IsType<JObject>(value);
+    }
+
+    [Fact]
+    public void ClearItemProperty_ignores_child_array_node()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data"] = new JArray(new JObject())
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        rootNode.GetRequiredService<IClearItemProperty>().ClearItemProperty(this.providerMock.Object, new[] { "data" });
+
+        // ASSERT
+        // the child node is untouched
+        Assert.True(root.TryGetValue("data", out var value));
+        Assert.IsType<JArray>(value);
     }
 
     #endregion IClearItemProperty
@@ -1058,8 +1240,10 @@ public class JObjectAdapterTest
         Assert.Equal(JTokenType.Null, v1!.Type);
     }
 
-    [Fact]
-    public void SetItemProperty_ignores_child_nodes()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SetItemProperty_ignores_child_object_nodes(bool force)
     {
         // ARRANGE
         var root = new JObject
@@ -1073,6 +1257,9 @@ public class JObjectAdapterTest
         var rootNode = new JObjectAdapter(root);
 
         this.ArrangeBeginModification();
+        this.providerMock
+            .Setup(p => p.Force)
+            .Returns(force);
 
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
@@ -1087,6 +1274,39 @@ public class JObjectAdapterTest
         Assert.Equal("changed", v1);
         Assert.True(root.TryGetValue("data2", out var v2));
         Assert.IsType<JObject>(v2);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SetItemProperty_ignores_child_array_nodes(bool force)
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = new JArray(new JObject())
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
+        this.providerMock
+            .Setup(p => p.Force)
+            .Returns(force);
+
+        // ACT
+        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
+        {
+            data1 = "changed",
+            data2 = 3
+        }));
+
+        // ASSERT
+        // the values were set
+        Assert.True(root.TryGetValue("data1", out var v1));
+        Assert.Equal("changed", v1);
+        Assert.True(root.TryGetValue("data2", out var v2));
+        Assert.IsType<JArray>(v2);
     }
 
     [Fact]
@@ -1200,20 +1420,20 @@ public class JObjectAdapterTest
 
         var root = new JObject
         {
-            ["array"] = new JArray(1, 2)
+            ["valueArray"] = new JArray(1, 2)
         };
         var rootAdapter = new JObjectAdapter(root);
 
         // ACT
-        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(provider: this.providerMock.Object, "array");
+        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(provider: this.providerMock.Object, "valueArray");
 
         // ASSERT
         // not only the value but also the property is removed.
-        Assert.False(root.TryGetValue("array", out var _));
+        Assert.False(root.TryGetValue("valueArray", out var _));
     }
 
     [Fact]
-    public void RemoveItemProperty_removing_property_ignores_child_properties()
+    public void RemoveItemProperty_removing_property_ignores_child_object_properties()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -1221,6 +1441,26 @@ public class JObjectAdapterTest
         var root = new JObject
         {
             ["child"] = new JObject(),
+        };
+        var rootAdapter = new JObjectAdapter(root);
+
+        // ACT
+        rootAdapter.GetRequiredService<IRemoveItemProperty>().RemoveItemProperty(provider: this.providerMock.Object, "child");
+
+        // ASSERT
+        // not only the value but also the property is removed.
+        Assert.True(root.TryGetValue("child", out var _));
+    }
+
+    [Fact]
+    public void RemoveItemProperty_removing_property_ignores_child_array_properties()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject
+        {
+            ["child"] = new JArray(new JObject()),
         };
         var rootAdapter = new JObjectAdapter(root);
 
@@ -1516,6 +1756,24 @@ public class JObjectAdapterTest
         // ASSERT
         // property wasn't created
         Assert.False(root.TryGetValue("data1", out var _));
+    }
+
+    [Fact]
+    public void NewItemProperty_create_child()
+    {
+        // ARRANGE
+        var root = new JObject();
+        var rootAdapter = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        // create array fails b/c of Newtonsoft Json not b/c of the adapter prohibiting it.
+        Assert.Throws<ArgumentException>(() => rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "objectArray", null, new[] { new { data = 1 } }));
+
+        // ASSERT
+        // property wasn't created
+        Assert.False(root.TryGetValue("objectArray", out var _));
     }
 
     [Fact]
