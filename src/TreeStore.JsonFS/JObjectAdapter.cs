@@ -342,22 +342,38 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     MoveChildItemResult IMoveChildItem.MoveChildItem(ICmdletProvider provider, ContainerNode parentOfNodeToMove, ProviderNode nodeToMove, string[] destination)
     {
-        using var handle = this.BeginModify(provider);
-
-        if (nodeToMove.NodeServiceProvider is JObjectAdapter underlying)
+        return nodeToMove.NodeServiceProvider switch
         {
-            return destination.Length switch
-            {
-                0 => this.MoveNodeUnderThisNode(nodeToMove.Name, underlying, parentOfNodeToMove),
-                1 => this.MoveNodeUnderThisNode(destination[0], underlying, parentOfNodeToMove),
-                _ => this.MoveNodeUnderNewParentNode(provider, destination[0], destination[1..], nodeToMove, parentOfNodeToMove)
-            };
-        }
-        return new(Created: false, Name: nodeToMove.Name, NodeServices: null);
+            JObjectAdapter jobjectToMove => this.MoveObjectToThisNode(provider, parentOfNodeToMove, nodeToMove, jobjectToMove, destination),
+            JArrayAdapter jarrayToMove => this.MoveArrayToThisNode(provider, parentOfNodeToMove, nodeToMove, jarrayToMove, destination),
+            _ => new(Created: false, Name: nodeToMove.Name, NodeServices: null)
+        };
     }
 
-    private MoveChildItemResult MoveNodeUnderNewParentNode(ICmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToMove, ContainerNode parentOfNodeToMove)
+    private MoveChildItemResult MoveArrayToThisNode(ICmdletProvider provider, ContainerNode parentOfNodeToMove, ProviderNode nodeToMove, JArrayAdapter nodeToMoveAdapter, string[] destination)
     {
+        return destination.Length switch
+        {
+            0 => this.MoveArrayUnderThisNode(provider, nodeToMove.Name, nodeToMoveAdapter, parentOfNodeToMove),
+            1 => this.MoveArrayUnderThisNode(provider, destination[0], nodeToMoveAdapter, parentOfNodeToMove),
+            _ => this.MoveNodeUnderNewParentNode(provider, destination[0], nodeToMove, parentOfNodeToMove, destination[1..])
+        };
+    }
+
+    private MoveChildItemResult MoveObjectToThisNode(ICmdletProvider provider, ContainerNode parentOfNodeToMove, ProviderNode nodeToMove, JObjectAdapter nodeToMoveAdapter, string[] destination)
+    {
+        return destination.Length switch
+        {
+            0 => this.MoveObjectUnderThisNode(provider, nodeToMove.Name, nodeToMoveAdapter, parentOfNodeToMove),
+            1 => this.MoveObjectUnderThisNode(provider, destination[0], nodeToMoveAdapter, parentOfNodeToMove),
+            _ => this.MoveNodeUnderNewParentNode(provider, destination[0], nodeToMove, parentOfNodeToMove, destination[1..])
+        };
+    }
+
+    private MoveChildItemResult MoveNodeUnderNewParentNode(ICmdletProvider provider, string parentName, ProviderNode nodeToMove, ContainerNode parentOfNodeToMove, string[] destination)
+    {
+        using var handle = this.BeginModify(provider);
+
         var parentJobject = new JObject();
         if (this.payload.TryAdd(parentName, parentJobject))
             return new JObjectAdapter(parentJobject).GetRequiredService<IMoveChildItem>().MoveChildItem(provider, parentOfNodeToMove, nodeToMove, destination);
@@ -365,12 +381,24 @@ public sealed class JObjectAdapter : JAdapterBase,
         return new(Created: false, Name: parentName, NodeServices: null);
     }
 
-    private MoveChildItemResult MoveNodeUnderThisNode(string name, JObjectAdapter underlying, ContainerNode parentOfNodeToMove)
+    private MoveChildItemResult MoveObjectUnderThisNode(ICmdletProvider provider, string name, JObjectAdapter nodeToMoveAdapter, ContainerNode parentOfNodeToMove)
     {
-        if (this.payload.TryAdd(name, underlying.payload.DeepClone()))
-            underlying.payload.Parent!.Remove();
+        using var handle = this.BeginModify(provider);
+
+        if (this.payload.TryAdd(name, CreateDeepObjectClone(nodeToMoveAdapter.payload)))
+            nodeToMoveAdapter.payload.Parent!.Remove();
 
         return new(Created: true, Name: name, NodeServices: new JObjectAdapter((JObject)this.payload.Property(name)!.Value));
+    }
+
+    private MoveChildItemResult MoveArrayUnderThisNode(ICmdletProvider provider, string name, JArrayAdapter nodeToMoveAdapter, ContainerNode parentOfNodeToMove)
+    {
+        using var handle = this.BeginModify(provider);
+
+        if (this.payload.TryAdd(name, CreateDeepArrayClone(nodeToMoveAdapter.payload)))
+            nodeToMoveAdapter.payload.Parent!.Remove();
+
+        return new(Created: true, Name: name, NodeServices: new JArrayAdapter((JArray)this.payload.Property(name)!.Value));
     }
 
     #endregion IMoveChildItem

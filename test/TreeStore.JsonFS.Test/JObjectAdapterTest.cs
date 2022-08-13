@@ -1072,7 +1072,7 @@ public class JObjectAdapterTest
     #region IMoveChildItem
 
     [Fact]
-    public void MoveChildItem_moves_underlying()
+    public void MoveChildItem_moves_JObject_to_JObject_with_source_name()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -1112,7 +1112,43 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void MoveChildItem_moves_underlying_with_new_name()
+    public void MoveChildItem_moves_JArray_to_JObject_with_source_name()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject()
+        {
+            ["child1"] = new JArray(new JObject(new JProperty("grandchild", new JObject()), new JProperty("property", 1))),
+            ["child2"] = new JObject()
+        };
+
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
+        var dst = new JObjectAdapter(root.ChildObject("child2")!);
+
+        // ACT
+        // move child1 under child2 as child1
+        dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
+            provider: this.providerMock.Object,
+            parentOfNodeToMove: rootNode,
+            nodeToMove: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
+            destination: Array.Empty<string>());
+
+        // ASSERT
+        // child1 was created under child2
+        Assert.NotNull(root.ChildObject("child2").ChildArray("child1"));
+
+        // child1 under root is gone
+        Assert.False(root.TryGetValue("child1", out var _));
+
+        // copy was deep: value and object property are there
+        Assert.True(root.ChildObject("child2").ChildArray("child1").ChildObject(0).TryGetValue("property", out var _));
+
+        Assert.True(root.ChildObject("child2").ChildArray("child1").ChildObject(0).TryGetValue("grandchild", out var _));
+    }
+
+    [Fact]
+    public void MoveChildItem_moves_JObject_to_JObject_with_new_name()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -1127,12 +1163,11 @@ public class JObjectAdapterTest
             ["child2"] = new JObject()
         };
 
-        var nodetoMove = root.ChildObject("child1");
         var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
         var dst = new JObjectAdapter(root.ChildObject("child2")!);
 
         // ACT
-        // move child1 under child2 as newname
+        // move child1 under child2 as 'new-name'
         dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
             provider: this.providerMock.Object,
             parentOfNodeToMove: rootNode,
@@ -1149,7 +1184,39 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void MoveChildItem_moves_underlying_with_new_parent_and_name()
+    public void MoveChildItem_moves_JArray_to_JObject_with_new_name()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject()
+        {
+            ["child1"] = new JArray(new JObject(new JProperty("grandchild", new JObject()), new JProperty("property", 1))),
+            ["child2"] = new JObject()
+        };
+
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
+        var dst = new JObjectAdapter(root.ChildObject("child2")!);
+
+        // ACT
+        // move child1 under child2 as 'new-name'
+        dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
+            provider: this.providerMock.Object,
+            parentOfNodeToMove: rootNode,
+            nodeToMove: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
+            destination: new[] { "new-name" });
+
+        // ASSERT
+        // child1 was created under child2
+        Assert.NotNull(root.ChildObject("child2").ChildArray("new-name"));
+
+        // copy was deep: value and object property are there
+        Assert.True(root.ChildObject("child2").ChildArray("new-name").ChildObject(0).TryGetValue("property", out var _));
+        Assert.True(root.ChildObject("child2").ChildArray("new-name").ChildObject(0).TryGetValue("grandchild", out var _));
+    }
+
+    [Fact]
+    public void MoveChildItem_moves_JObject_to_JObject_with_new_parent_and_name()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -1186,6 +1253,41 @@ public class JObjectAdapterTest
         // copy was deep: value and object property are there
         Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildObject("new-name").TryGetValue("property", out var _));
         Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildObject("new-name").TryGetValue("grandchild", out var _));
+    }
+
+    [Fact]
+    public void MoveChildItem_moves_JArray_to_JObject_with_new_parent_and_name()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject()
+        {
+            ["child1"] = new JArray(new JObject(new JProperty("grandchild", new JObject()), new JProperty("property", 1))),
+            ["child2"] = new JObject()
+        };
+
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
+        var dst = new JObjectAdapter(root.ChildObject("child2")!);
+
+        // ACT
+        // move child1 under child2 as new-parent/new-name
+        dst.GetRequiredService<IMoveChildItem>().MoveChildItem(
+            provider: this.providerMock.Object,
+            parentOfNodeToMove: rootNode,
+            nodeToMove: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
+            destination: new[] { "new-parent", "new-name" });
+
+        // ASSERT
+        // new-parent was created under child2
+        Assert.NotNull(root.ChildObject("child2").ChildObject("new-parent"));
+
+        // child1 was created under new-parent
+        Assert.NotNull(root.ChildObject("child2").ChildObject("new-parent").ChildArray("new-name"));
+
+        // copy was deep: value and object property are there
+        Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildArray("new-name").ChildObject(0).TryGetValue("property", out var _));
+        Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildArray("new-name").ChildObject(0).TryGetValue("grandchild", out var _));
     }
 
     #endregion IMoveChildItem
