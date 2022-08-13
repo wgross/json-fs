@@ -74,6 +74,9 @@ public static class JObjectExtensions
     public static JObject ChildObject(this JObject parent, string name)
         => parent.Property(name)?.Value as JObject ?? throw new InvalidOperationException($"{name} isn't a JObject");
 
+    public static JArray ChildArray(this JObject parent, string name)
+        => parent.Property(name)?.Value as JArray ?? throw new InvalidOperationException($"{name} isn't a JArray");
+
     public static bool TryGetJObject(this JObject parent, string name, [DoesNotReturnIf(true)] out JObject? jobject)
     {
         jobject = parent.Property(name)?.Value switch

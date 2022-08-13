@@ -22,22 +22,6 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     private static bool IsValueProperty(JProperty property) => IsValueToken(property.Value);
 
-    private static bool IsValueToken(JToken token) => token switch
-    {
-        JObject => false,
-        JArray jarray => IsValueArray(jarray),
-
-        _ => true
-    };
-
-    private static bool IsValueArray(JArray jarray)
-    {
-        if (!jarray.HasValues)
-            return true; // empty array is value array until proven otherwise
-
-        return IsValueToken(jarray.First());
-    }
-
     #endregion Define value semantics
 
     #region Query properties holding value semantics
@@ -45,6 +29,11 @@ public sealed class JObjectAdapter : JAdapterBase,
     private IEnumerable<JProperty> ValueProperties() => this.ValueProperties(this.payload);
 
     private IEnumerable<JProperty> ValueProperties(JObject jobject) => jobject.Properties().Where(IsValueProperty);
+
+    /// <summary>
+    /// By Definition: An array has no value properties. Its element may be values abut is hasn't properties
+    /// </summary>
+    private IEnumerable<JProperty> ValueProperties(JArray array) => Enumerable.Empty<JProperty>();
 
     private JProperty? ValueProperty(string name)
     {
@@ -81,18 +70,6 @@ public sealed class JObjectAdapter : JAdapterBase,
     }
 
     #endregion Query properties holding child node semantics
-
-    #region Write the JSON file after modification
-
-    private IDisposable BeginModify(ICmdletProvider cmdletProvider)
-    {
-        if (cmdletProvider is IJsonFsRootNodeModification jsonFsRootNodeModification)
-            return jsonFsRootNodeModification.BeginModify();
-
-        throw new InvalidOperationException($"Provider(type='{cmdletProvider.GetType()}' doesn't support modification");
-    }
-
-    #endregion Write the JSON file after modification
 
     #region IServiceProvider
 
@@ -268,20 +245,47 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     CopyChildItemResult ICopyChildItem.CopyChildItem(ICmdletProvider provider, ProviderNode nodeToCopy, string[] destination)
     {
+        return nodeToCopy.NodeServiceProvider switch
+        {
+            JObjectAdapter jobjectToCopy => this.CopyObjectToThisNode(provider, nodeToCopy, jobjectToCopy, destination),
+
+            JArrayAdapter jarrayToCopy => this.CopyArrayToThisNode(provider, nodeToCopy, jarrayToCopy, destination),
+
+            _ => new(false, default, default)
+        };
+    }
+
+    private CopyChildItemResult CopyArrayToThisNode(ICmdletProvider provider, ProviderNode nodeToCopy, JArrayAdapter underlying, string[] destination)
+    {
         using var handle = this.BeginModify(provider);
 
-        if (nodeToCopy.NodeServiceProvider is JObjectAdapter underlying)
+        return destination.Length switch
         {
-            return destination.Length switch
-            {
-                0 => this.CopyNodeUnderThisNode(nodeToCopy.Name, underlying, this.ShallowClone),
-                1 => this.CopyNodeUnderThisNode(destination[0], underlying, this.ShallowClone),
-                _ => this.CopyNodeUnderNewParent(provider, destination[0], destination[1..], nodeToCopy)
-            };
-        }
-        // TODO: extend to JArray
+            0 => this.CopyArrayUnderThisNode(nodeToCopy.Name, underlying, this.ShallowArrayClone),
+            1 => this.CopyArrayUnderThisNode(destination[0], underlying, this.ShallowArrayClone),
+            _ => this.CopyNodeUnderNewParent(provider, destination[0], destination[1..], nodeToCopy)
+        };
+    }
 
-        return null;
+    private CopyChildItemResult CopyArrayUnderThisNode(string name, JArrayAdapter underlying, Func<JArray, JArray> clone)
+    {
+        if (this.payload.TryAdd(name, clone(underlying.payload)))
+            if (this.payload.TryGetValue(name, out var jtoken))
+                return new(Created: true, Name: name, NodeServices: new JArrayAdapter((JArray)jtoken));
+
+        return new(Created: false, Name: name, NodeServices: null);
+    }
+
+    private CopyChildItemResult CopyObjectToThisNode(ICmdletProvider provider, ProviderNode nodeToCopy, JObjectAdapter underlying, string[] destination)
+    {
+        using var handle = this.BeginModify(provider);
+
+        return destination.Length switch
+        {
+            0 => this.CopyObjectUnderThisNode(nodeToCopy.Name, underlying, this.ShallowObjectClone),
+            1 => this.CopyObjectUnderThisNode(destination[0], underlying, this.ShallowObjectClone),
+            _ => this.CopyNodeUnderNewParent(provider, destination[0], destination[1..], nodeToCopy)
+        };
     }
 
     private CopyChildItemResult CopyNodeUnderNewParent(ICmdletProvider provider, string parentName, string[] destination, ProviderNode nodeToCopy)
@@ -293,9 +297,9 @@ public sealed class JObjectAdapter : JAdapterBase,
         return new(Created: false, Name: parentName, NodeServices: null);
     }
 
-    private CopyChildItemResult CopyNodeUnderThisNode(string name, JObjectAdapter adapter, Func<JObject, JObject> clone)
+    private CopyChildItemResult CopyObjectUnderThisNode(string name, JObjectAdapter underlying, Func<JObject, JObject> clone)
     {
-        if (this.payload.TryAdd(name, clone(adapter.payload)))
+        if (this.payload.TryAdd(name, clone(underlying.payload)))
             if (this.payload.TryGetValue(name, out var jtoken))
                 return new(Created: true, Name: name, NodeServices: new JObjectAdapter((JObject)jtoken));
 
@@ -305,7 +309,9 @@ public sealed class JObjectAdapter : JAdapterBase,
     /// <summary>
     /// A shallow clone contains all properties except the objects.
     /// </summary>
-    private JObject ShallowClone(JObject jobject) => new JObject(this.ValueProperties(jobject));
+    private JObject ShallowObjectClone(JObject jobject) => new JObject(this.ValueProperties(jobject));
+
+    private JArray ShallowArrayClone(JArray jarray) => new JArray(jarray);
 
     #endregion ICopyChildItem
 
@@ -319,8 +325,8 @@ public sealed class JObjectAdapter : JAdapterBase,
         {
             return destination.Length switch
             {
-                0 => this.CopyNodeUnderThisNode(nodeToCopy.Name, underlying, jo => (JObject)jo.DeepClone()),
-                1 => this.CopyNodeUnderThisNode(destination[0], underlying, jo => (JObject)jo.DeepClone()),
+                0 => this.CopyObjectUnderThisNode(nodeToCopy.Name, underlying, jo => (JObject)jo.DeepClone()),
+                1 => this.CopyObjectUnderThisNode(destination[0], underlying, jo => (JObject)jo.DeepClone()),
                 _ => this.CopyNodeUnderNewParentRecursive(provider, destination[0], destination[1..], nodeToCopy)
             };
         }
