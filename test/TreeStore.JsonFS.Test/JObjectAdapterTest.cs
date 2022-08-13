@@ -907,54 +907,7 @@ public class JObjectAdapterTest
     #region ICopyChildItemRecursive
 
     [Fact]
-    public void CopyChildItem_copies_to_node_with_source_name_recursive()
-    {
-        // ARRANGE
-        this.ArrangeBeginModification();
-
-        var root = new JObject
-        {
-            ["child1"] = new JObject
-            {
-                ["data"] = 1,
-                ["grandchild"] = new JObject
-                {
-                    ["value"] = 2
-                }
-            },
-            ["child2"] = new JObject()
-        };
-        var nodeToCopy = root.Property("child1")!.Value as JObject;
-
-        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
-        var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
-
-        // ACT
-        // copy child1 under child2 as 'child1'
-        var result = dst.GetRequiredService<ICopyChildItemRecursive>().CopyChildItemRecursive(
-            provider: this.providerMock.Object,
-            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
-            destination: Array.Empty<string>());
-
-        // ASSERT
-        // source is still there
-        Assert.NotNull(root.ChildObject("child1"));
-
-        // child1 was created under child2
-        Assert.True(result.Created);
-        Assert.NotNull(root.ChildObject("child2")!.ChildObject("child1"));
-        Assert.NotSame(nodeToCopy, root.ChildObject("child2").ChildObject("child1"));
-
-        // property was copied
-        Assert.Equal(1, root.ChildObject("child2")!.ChildObject("child1")!["data"]!.Value<int>());
-
-        // copy is recursive: grandchild is with property as well
-        Assert.True(root.ChildObject("child2").ChildObject("child1").TryGetValue("grandchild", out var _));
-        Assert.True(root.ChildObject("child2").ChildObject("child1").ChildObject("grandchild").TryGetValue("value", out var _));
-    }
-
-    [Fact]
-    public void CopyChildItem_copies_to_node_with_new_name_recursive()
+    public void CopyChildItem_copies_JObject_to_JObject_with_new_name_recursive()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -995,7 +948,44 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void CopyChildItem_copies_to_node_with_new_parent_and_name_recursive()
+    public void CopyChildItem_copies_JArray_to_JObject_with_source_name_recursive()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject
+        {
+            ["child1"] = new JArray(new JObject(new JProperty("grandchild", new JObject(new JProperty("value", 1))))),
+            ["child2"] = new JObject()
+        };
+        var nodeToCopy = root.Property("child1")!.Value as JObject;
+
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
+        var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
+
+        // ACT
+        // copy child1 under child2 as 'child1'
+        var result = dst.GetRequiredService<ICopyChildItemRecursive>().CopyChildItemRecursive(
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
+            destination: Array.Empty<string>());
+
+        // ASSERT
+        // source is still there
+        Assert.NotNull(root.ChildArray("child1"));
+
+        // child1 was created under child2
+        Assert.True(result.Created);
+        Assert.NotNull(root.ChildObject("child2")!.ChildArray("child1"));
+
+        // copy is recursive: grandchild is with property as well
+        Assert.NotNull(root.ChildObject("child2")!.ChildArray("child1").ChildObject(0).ChildObject("grandchild"));
+        Assert.NotSame(nodeToCopy, root.ChildObject("child2").ChildArray("child1"));
+        Assert.Equal(1, root.ChildObject("child2")!.ChildArray("child1").ChildObject(0).ChildObject("grandchild")!["value"]!.Value<int>());
+    }
+
+    [Fact]
+    public void CopyChildItem_copies_JObject_to_JObject_with_new_parent_and_name_recursive()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -1037,6 +1027,44 @@ public class JObjectAdapterTest
         // copy is recursive: grandchild is with property as well
         Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildObject("new-name").TryGetValue("grandchild", out var _));
         Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildObject("new-name").ChildObject("grandchild").TryGetValue("value", out var _));
+    }
+
+    [Fact]
+    public void CopyChildItem_copies_JArray_to_JObject_with_new_parent_and_name_recursive()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var root = new JObject
+        {
+            ["child1"] = new JArray(new JObject(new JProperty("grandchild", new JObject(new JProperty("value", 1))))),
+            ["child2"] = new JObject()
+        };
+        var nodeToCopy = root.Property("child1")!.Value as JObject;
+
+        var rootNode = new RootNode(this.providerMock.Object, new JObjectAdapter(root));
+        var dst = new JObjectAdapter((JObject)root.Property("child2")!.Value);
+
+        // ACT
+        // copy child1 under child2 as 'new-parent/new-name'
+        var result = dst.GetRequiredService<ICopyChildItemRecursive>().CopyChildItemRecursive(
+            provider: this.providerMock.Object,
+            nodeToCopy: rootNode.GetChildItems(this.providerMock.Object).Single(n => n.Name == "child1"),
+            destination: new string[] { "new-parent", "new-name" });
+
+        // ASSERT
+        // node was created
+        Assert.True(result.Created);
+        Assert.Equal("new-name", result.Name);
+
+        // parent node was created
+        Assert.NotNull(root.ChildObject("child2").ChildObject("new-parent"));
+        // node was created under new parent
+        Assert.NotNull(root.ChildObject("child2").ChildObject("new-parent").ChildArray("new-name"));
+
+        // copy is recursive: grandchild is with property as well
+        Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildArray("new-name").ChildObject(0).TryGetValue("grandchild", out var _));
+        Assert.True(root.ChildObject("child2").ChildObject("new-parent").ChildArray("new-name").ChildObject(0).ChildObject("grandchild").TryGetValue("value", out var _));
     }
 
     #endregion ICopyChildItemRecursive

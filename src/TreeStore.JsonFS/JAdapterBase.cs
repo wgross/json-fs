@@ -27,6 +27,8 @@ public abstract class JAdapterBase : IServiceProvider
 
     #region Define value semantics
 
+    protected static bool IsValueProperty(JProperty property) => IsValueToken(property.Value);
+
     protected static bool IsValueToken(JToken token) => token switch
     {
         JObject => false,
@@ -35,7 +37,7 @@ public abstract class JAdapterBase : IServiceProvider
         _ => true
     };
 
-    private static bool IsValueArray(JArray jarray)
+    protected static bool IsValueArray(JArray jarray)
     {
         if (!jarray.HasValues)
             return true; // empty array is value array until proven otherwise
@@ -47,7 +49,36 @@ public abstract class JAdapterBase : IServiceProvider
 
     #region Define child semantics
 
+    protected static bool IsChildProperty(JProperty property) => !IsValueProperty(property);
+
     protected static bool IsChildToken(JToken token) => !IsValueToken(token);
 
     #endregion Define child semantics
+
+    #region Query properties holding child node semantics
+
+    protected static IEnumerable<JProperty> ChildProperties(JObject jobject) => jobject.Properties().Where(IsChildProperty);
+
+    #endregion Query properties holding child node semantics
+
+    #region Query properties holding value semantics
+
+    protected static IEnumerable<JProperty> ValueProperties(JObject jobject) => jobject.Properties().Where(IsValueProperty);
+
+    #endregion Query properties holding value semantics
+
+    #region Create clones
+
+    /// <summary>
+    /// A shallow clone contains all properties except the objects.
+    /// </summary>
+    protected static JObject CreateShallowObjectClone(JObject jobject) => new JObject(ValueProperties(jobject));
+
+    protected static JObject CreateDeepObjectClone(JObject jobject) => (JObject)jobject.DeepClone();
+
+    protected static JArray CreateShallowArrayClone(JArray jarray) => new JArray(jarray);
+
+    protected static JArray CreateDeepArrayClone(JArray jarray) => (JArray)jarray.DeepClone();
+
+    #endregion Create clones
 }
