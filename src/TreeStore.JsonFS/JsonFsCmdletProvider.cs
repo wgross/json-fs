@@ -10,7 +10,13 @@ public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsR
     /// </summary>
     protected override PSDriveInfo NewDrive(PSDriveInfo drive)
     {
-        return new JsonFsDriveInfo(JsonFsRootProvider.FromFile(drive.Root), new PSDriveInfo(
+        // path may contain wild cards: take only the first path.
+        // if the path couldn't be resolved throw
+        var jsonFilePath = this.SessionState.Path.GetResolvedProviderPathFromPSPath(drive.Root, out var _).FirstOrDefault();
+        if (jsonFilePath is null)
+            throw new PSArgumentException($"Path: '{drive.Root}' couldn't be resolved");
+
+        return new JsonFsDriveInfo(JsonFsRootProvider.FromFile(jsonFilePath), new PSDriveInfo(
            name: drive.Name,
            provider: drive.Provider,
            root: $@"{drive.Name}:\",

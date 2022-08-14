@@ -185,7 +185,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         {
             ["object"] = new JObject()
             {
-                ["grandobject"] = new JObject()
+                ["grand-object"] = new JObject()
             }
         });
 
@@ -202,7 +202,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         this.AssertJsonFileContent(r =>
         {
             Assert.True(r.TryGetJObject("object", out var o));
-            Assert.True(o.TryGetJObject("grandobject", out var _));
+            Assert.True(o!.TryGetJObject("grand-object", out var _));
         });
     }
 
@@ -214,7 +214,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         {
             ["object"] = new JObject
             {
-                ["grandobject"] = new JObject()
+                ["grand-object"] = new JObject()
             }
         });
 

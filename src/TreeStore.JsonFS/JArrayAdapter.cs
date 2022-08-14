@@ -95,7 +95,7 @@ public sealed class JArrayAdapter : JAdapterBase,
     #region INewChildItem
 
     /// <inheritdoc/>
-    object? INewChildItem.NewChildItemParameters(string childName, string itemTypeName, object newItemValue)
+    object? INewChildItem.NewChildItemParameters(string? childName, string? itemTypeName, object? newItemValue)
         => new NewChildItemParameters();
 
     /// <inheritdoc/>

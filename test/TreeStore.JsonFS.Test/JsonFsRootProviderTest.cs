@@ -124,7 +124,7 @@ public class JsonFsRootProviderTest
         // file has been modified
         var afterWrite = JObject.Parse(await File.ReadAllTextAsync(this.filePath));
 
-        Assert.Equal("value", afterWrite["data2"].Value<string>());
+        Assert.Equal("value", afterWrite["data2"]!.Value<string>());
     }
 
     [Fact]
@@ -161,8 +161,8 @@ public class JsonFsRootProviderTest
         // file has been modified
         var afterWrite = JObject.Parse(await File.ReadAllTextAsync(this.filePath));
 
-        Assert.Equal("value", afterWrite["data3"].Value<string>());
-        Assert.Equal("value", afterWrite["data4"].Value<string>());
+        Assert.Equal("value", afterWrite["data3"]!.Value<string>());
+        Assert.Equal("value", afterWrite["data4"]!.Value<string>());
     }
 
     //[Fact]

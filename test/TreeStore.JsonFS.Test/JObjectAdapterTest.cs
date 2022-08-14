@@ -518,7 +518,7 @@ public class JObjectAdapterTest
         Assert.True(underlying.TryGetValue("container1", out var added));
 
         // the property was kept as well.
-        Assert.Equal("text", added["property2"].Value<string>());
+        Assert.Equal("text", added["property2"]!.Value<string>());
     }
 
     [Fact]
@@ -1430,7 +1430,7 @@ public class JObjectAdapterTest
         // ACT
         rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(provider: this.providerMock.Object, new PSObject(new
         {
-            data1 = (object)null,
+            data1 = (object?)null,
         }));
 
         // ASSERT

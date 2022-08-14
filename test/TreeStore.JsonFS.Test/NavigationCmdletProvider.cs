@@ -36,8 +36,8 @@ public class NavigationCmdletProvider : PowerShellTestBase
         {
             Assert.False(r.TryGetJObject("child1", out var _));
             Assert.True(r.TryGetJObject("child2", out var c2));
-            Assert.True(c2.TryGetJObject("child1", out var c1));
-            Assert.Equal("text", c1.Value<string>("property"));
+            Assert.True(c2!.TryGetJObject("child1", out var c1));
+            Assert.Equal("text", c1!.Value<string>("property"));
         });
     }
 
@@ -59,10 +59,10 @@ public class NavigationCmdletProvider : PowerShellTestBase
         // ACT
         var result = this.PowerShell.AddCommand("Move-Item")
             .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2\newname")
+            .AddParameter("Destination", @"test:\child2\new-name")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child2\newname")
+            .AddParameter("Path", @"test:\child2\new-name")
             .Invoke()
             .Single();
 
@@ -74,8 +74,8 @@ public class NavigationCmdletProvider : PowerShellTestBase
         {
             Assert.False(r.TryGetJObject("child1", out var _));
             Assert.True(r.TryGetJObject("child2", out var c2));
-            Assert.True(c2.TryGetJObject("newname", out var nn));
-            Assert.Equal("text", nn.Value<string>("property"));
+            Assert.True(c2!.TryGetJObject("new-name", out var nn));
+            Assert.Equal("text", nn!.Value<string>("property"));
         });
     }
 
@@ -94,14 +94,14 @@ public class NavigationCmdletProvider : PowerShellTestBase
     //    // ACT
     //    this.PowerShell.AddCommand("Move-Item")
     //        .AddParameter("Path", @"test:\child1")
-    //        .AddParameter("Destination", @"test:\child2\newname")
+    //        .AddParameter("Destination", @"test:\child2\new-name")
     //        .Invoke()
     //        .ToArray();
 
     //    // ASSERT
     //    Assert.False(this.PowerShell.HadErrors);
     //    Assert.False(root.TryGetValue("child1", out var _));
-    //    Assert.Same(child1, ((JObject)root.Property("child2").Value).Property["newname"]);
+    //    Assert.Same(child1, ((JObject)root.Property("child2").Value).Property["new-name"]);
     //}
 
     //[Fact]
@@ -119,14 +119,14 @@ public class NavigationCmdletProvider : PowerShellTestBase
     //    // ACT
     //    this.PowerShell.AddCommand("Move-Item")
     //        .AddParameter("Path", @"test:\child1")
-    //        .AddParameter("Destination", @"test:\child2\child3\newname")
+    //        .AddParameter("Destination", @"test:\child2\child3\new-name")
     //        .Invoke()
     //        .ToArray();
 
     //    // ASSERT
     //    Assert.False(this.PowerShell.HadErrors);
     //    Assert.False(root.TryGetValue("child1", out var _));
-    //    Assert.Same(child1, ((JObject)((JObject)root["child2"]!)["child3"])["newname"]);
+    //    Assert.Same(child1, ((JObject)((JObject)root["child2"]!)["child3"])["new-name"]);
     //}
 
     #endregion Move-Item -Path -Destination

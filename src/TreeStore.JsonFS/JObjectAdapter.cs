@@ -48,17 +48,6 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     #endregion Query properties holding child node semantics
 
-    #region IServiceProvider
-
-    public object? GetService(Type serviceType)
-    {
-        if (this.GetType().IsAssignableTo(serviceType))
-            return this;
-        else return null;
-    }
-
-    #endregion IServiceProvider
-
     #region IGetItem
 
     PSObject IGetItem.GetItem(ICmdletProvider provider)
@@ -170,8 +159,10 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     #region INewChildItem
 
-    NewChildItemResult INewChildItem.NewChildItem(ICmdletProvider provider, string childName, string? itemTypeName, object? newItemValue)
+    NewChildItemResult INewChildItem.NewChildItem(ICmdletProvider provider, string? childName, string? itemTypeName, object? newItemValue)
     {
+        ArgumentNullException.ThrowIfNull(childName, nameof(childName));
+
         if (this.payload.TryGetValue(childName, out var _))
             throw new InvalidOperationException($"A property(name='{childName}') already exists");
 
@@ -460,7 +451,7 @@ public sealed class JObjectAdapter : JAdapterBase,
         switch (token.Type)
         {
             case JTokenType.Null:
-                this.IfValueSemantic(null, then);
+                this.IfValueSemantic((object?)null, then);
                 return;
 
             case JTokenType.Object:
