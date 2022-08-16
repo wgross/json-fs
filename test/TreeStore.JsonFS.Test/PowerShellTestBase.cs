@@ -48,7 +48,7 @@ public class PowerShellTestBase : IDisposable
         this.PowerShell.Commands.Clear();
         this.PowerShell
             .AddCommand("Import-Module")
-            .AddArgument("./TreeStore.JsonFS.dll")
+            .AddArgument("./JsonFS.psd1")
             .AddStatement()
             .AddCommand("New-PSDrive")
             .AddParameter("PSProvider", "JsonFS")

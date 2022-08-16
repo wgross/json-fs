@@ -32,7 +32,7 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         Assert.True(result.Property<bool>("PSIsContainer"));
         Assert.Equal("test", result.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", result.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"TreeStore.JsonFS\JsonFS::test:\", result.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:\", result.Property<string>("PSPath"));
         Assert.Equal("", result.Property<string>("PSParentPath"));
 
         // the property value_skipped is missing in the result

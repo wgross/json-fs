@@ -12,7 +12,7 @@ public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsR
     {
         // path may contain wild cards: take only the first path.
         // if the path couldn't be resolved throw
-        var jsonFilePath = this.SessionState.Path.GetResolvedProviderPathFromPSPath(drive.Root, out var _).FirstOrDefault();
+        var jsonFilePath = this.SessionState.Path.GetUnresolvedProviderPathFromPSPath(drive.Root);
         if (jsonFilePath is null)
             throw new PSArgumentException($"Path: '{drive.Root}' couldn't be resolved");
 

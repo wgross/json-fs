@@ -6,6 +6,32 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     #region Get-Item -Path
 
     [Fact]
+    public void Powershell_create_file_and_reads_root_node()
+    {
+        // ARRANGE
+        this.ArrangeFileSystem(this.JsonFilePath);
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.Equal("test:", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+    }
+
+    [Fact]
     public void Powershell_reads_root_node()
     {
         // ARRANGE
@@ -27,7 +53,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"TreeStore.JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
         Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
     }
 
@@ -55,8 +81,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"TreeStore.JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"TreeStore.JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
     }
 
     [Fact]
@@ -86,8 +112,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"TreeStore.JsonFS\JsonFS::test:\object\object", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"TreeStore.JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:\object\object", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
     }
 
     #endregion Get-Item -Path

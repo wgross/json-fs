@@ -20,11 +20,11 @@ Import-Module dotnet-fs
 	$script:projectVersion = dotnet-fs\Get-DotNetProjectItem -CSproj | dotnet-csproj\Get-DotNetProjectVersion
 }
 
-if(Test-Path -Path "$PSScriptRoot\json-fs\$($script:projectVersion.VersionPrefix)") {
-	Remove-Item "$PSScriptRoot\json-fs\$($script:projectVersion.VersionPrefix)" -Recurse -Force
+if(Test-Path -Path "$PSScriptRoot\JsonFS\$($script:projectVersion.VersionPrefix)") {
+Remove-Item "$PSScriptRoot\JsonFS\$($script:projectVersion.VersionPrefix)" -Recurse -Force
 }
 
-$packageDirectory = New-Item "$PSScriptRoot\json-fs\$($script:projectVersion.VersionPrefix)" -ItemType Directory
+$packageDirectory = New-Item "$PSScriptRoot\JsonFS\$($script:projectVersion.VersionPrefix)" -ItemType Directory
 $packageDirectory | Write-Debug
 
 "$PSScriptRoot\src\TreeStore.JsonFS\bin\debug\net6.0\publish"  | fs-dirs\Invoke-AtContainer {
