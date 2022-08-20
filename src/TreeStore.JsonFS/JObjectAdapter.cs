@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS;
+﻿using System.Globalization;
+
+namespace TreeStore.JsonFS;
 
 /// <summary>
 /// Implements an adapter between TreeStores ProviderNode and <see cref="Newtonsoft.Json.Linq.JObject"/>.
@@ -75,22 +77,74 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     void ISetItem.SetItem(ICmdletProvider provider, object? value)
     {
+        switch (value)
+        {
+            case JObject jobject:
+                this.SetItemFromJObject(provider, jobject);
+                break;
+
+            case string json:
+                this.SetItemFromString(provider, json);
+                break;
+
+            case PSObject psobject:
+                this.SetItemFromPSObject(provider, psobject);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private void SetItemFromPSObject(ICmdletProvider provider, PSObject psobject)
+    {
+        ((IList)this.payload!).Clear();
+
+        foreach (var p in psobject.Properties)
+        {
+            switch (p.Value)
+            {
+                case PSObject pso:
+                    this.NewChildItemFromPSObject(provider, p.Name, null, pso);
+                    break;
+
+                case PSObject[] psoArray:
+                    for (int i = 0; i < psoArray.Length; i++)
+                        this.NewChildItemFromPSObject(provider, i.ToString(CultureInfo.InvariantCulture), null, psoArray[i]);
+                    break;
+
+                default:
+                    IfValueSemantic(p.Value, then: jt => this.payload[p.Name] = jt);
+                    break;
+            }
+        }
+
+        // exceptions happening before this line let the node unchanged.
         using var handle = this.BeginModify(provider);
+    }
 
-        if (value is JObject jobject)
-        {
-            ((IList)this.payload).Clear();
-            foreach (var p in jobject.Properties())
-                this.payload[p.Name] = p.Value;
-        }
-        else if (value is string json)
-        {
-            var jobjectFromString = JObject.Parse(json);
+    private void SetItemFromJObject(ICmdletProvider provider, JObject jobject)
+    {
+        ((IList)this.payload!).Clear();
 
-            ((IList)this.payload).Clear();
-            foreach (var p in jobjectFromString.Properties())
-                this.payload[p.Name] = p.Value;
-        }
+        foreach (var p in jobject.Properties())
+            this.payload[p.Name] = p.Value;
+
+        // exceptions happening before this line let the node unchanged.
+        using var handle = this.BeginModify(provider);
+    }
+
+    private void SetItemFromString(ICmdletProvider provider, string json)
+    {
+        var jobjectFromString = JObject.Parse(json);
+
+        ((IList)this.payload!).Clear();
+
+        foreach (var p in jobjectFromString.Properties())
+            this.payload[p.Name] = p.Value;
+
+        // exceptions happening before this line let the node unchanged.
+        using var handle = this.BeginModify(provider);
     }
 
     #endregion ISetItem
@@ -168,29 +222,58 @@ public sealed class JObjectAdapter : JAdapterBase,
 
         using var handle = this.BeginModify(provider);
 
-        if (newItemValue is null)
+        return newItemValue switch
         {
-            var emptyObject = new JObject();
+            JObject jobject => this.NewChildItemFromJObject(provider, childName, itemTypeName, jobject),
 
-            this.payload[childName] = emptyObject;
+            PSObject pso => this.NewChildItemFromPSObject(provider, childName, itemTypeName, pso),
 
-            return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(emptyObject));
-        }
-        if (newItemValue is JObject jobject)
-        {
-            this.payload[childName] = jobject;
+            string json => this.NewChildItemFromJson(provider, childName, itemTypeName, json),
 
-            return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(jobject));
-        }
-        else if (newItemValue is string json)
-        {
-            var parsedObject = JObject.Parse(json);
-            this.payload[childName] = parsedObject;
+            null => this.NewChildItemEmpty(provider, childName, itemTypeName),
 
-            return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(parsedObject));
-        }
+            _ => new(Created: false, Name: childName, null)
+        };
+    }
 
-        return new(Created: false, Name: childName, null);
+    private NewChildItemResult NewChildItemFromJson(ICmdletProvider provider, string childName, string? itemTypeName, string json)
+    {
+        var parsedObject = JObject.Parse(json);
+
+        this.payload[childName] = parsedObject;
+
+        return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(parsedObject));
+    }
+
+    private NewChildItemResult NewChildItemFromJObject(ICmdletProvider provider, string childName, string? itemTypeName, JObject jobject)
+    {
+        this.payload[childName] = jobject;
+
+        return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(jobject));
+    }
+
+    private NewChildItemResult NewChildItemEmpty(ICmdletProvider provider, string childName, string? itemTypeName)
+    {
+        JObject emptyObject = new();
+
+        this.payload[childName] = emptyObject;
+
+        return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(emptyObject));
+    }
+
+    private NewChildItemResult NewChildItemFromPSObject(ICmdletProvider provider, string? childName, string? itemTypeName, PSObject newItemValue)
+    {
+        ArgumentNullException.ThrowIfNull(childName, nameof(childName));
+
+        JObject childObject = new();
+
+        this.payload[childName] = childObject;
+
+        JObjectAdapter jobjectAdapter = new(childObject);
+
+        jobjectAdapter.SetItemFromPSObject(provider, newItemValue);
+
+        return new(Created: true, Name: childName, NodeServices: jobjectAdapter);
     }
 
     #endregion INewChildItem
@@ -410,7 +493,7 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     #endregion IClearItemProperty
 
-    #region ISetItemPorperty
+    #region ISetItemProperty
 
     void ISetItemProperty.SetItemProperty(ICmdletProvider provider, PSObject properties)
     {
@@ -421,7 +504,7 @@ public sealed class JObjectAdapter : JAdapterBase,
             var valueProperty = this.ValueProperty(p.Name);
             if (valueProperty is not null)
             {
-                this.IfValueSemantic(p.Value, jt => valueProperty.Value = jt);
+                IfValueSemantic(p.Value, then: jt => valueProperty.Value = jt);
             }
             else if (provider.Force.ToBool())
             {
@@ -432,40 +515,7 @@ public sealed class JObjectAdapter : JAdapterBase,
         }
     }
 
-    private void IfValueSemantic(object? value, Action<JToken> then)
-    {
-        if (value is null)
-            then(JValue.CreateNull());
-        else if (value is string str)
-            then(new JValue(value));
-        else if (value.GetType().IsArray)
-            then(new JArray(value));
-        else if (value.GetType().IsClass)
-            return;
-        else
-            then(new JValue(value));
-    }
-
-    private void IfValueSemantic(JToken token, Action<JToken> then)
-    {
-        switch (token.Type)
-        {
-            case JTokenType.Null:
-                this.IfValueSemantic((object?)null, then);
-                return;
-
-            case JTokenType.Object:
-                return;
-
-            case JTokenType.Array:
-            case JTokenType.String:
-            default:
-                this.IfValueSemantic(((JValue)token).Value, then);
-                return;
-        }
-    }
-
-    #endregion ISetItemPorperty
+    #endregion ISetItemProperty
 
     #region IRemoveItemProperty
 
@@ -536,7 +586,7 @@ public sealed class JObjectAdapter : JAdapterBase,
     private void CreateItemProperty(string propertyName, object? value)
     {
         if (!this.payload.TryGetValue(propertyName, out var _))
-            this.IfValueSemantic(value, jt => this.payload[propertyName] = jt);
+            IfValueSemantic(value, jt => this.payload[propertyName] = jt);
     }
 
     #endregion INewItemProperty
@@ -549,7 +599,7 @@ public sealed class JObjectAdapter : JAdapterBase,
 
         if (this.payload.TryGetValue(sourceProperty, out var value))
             if (!this.payload.TryGetValue(destinationProperty, out var _))
-                this.IfValueSemantic(value, jt =>
+                IfValueSemantic(value, jt =>
                 {
                     if (this.payload.Remove(sourceProperty))
                         this.payload[destinationProperty] = jt;

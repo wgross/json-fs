@@ -67,7 +67,7 @@ public class JObjectAdapterTest
     #region ISetItem
 
     [Fact]
-    public void SetItem_replaces_from_JObject()
+    public void SetItem_replaces_properties_from_JObject()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -85,6 +85,48 @@ public class JObjectAdapterTest
             ["value"] = new JValue(1),
             ["valueArray"] = new JArray(1, 2)
         };
+
+        // ACT
+        // override node with new data
+        node.GetRequiredService<ISetItem>().SetItem(this.providerMock.Object, newData);
+
+        // ASSERT
+        // array was added, value overrides the old value
+        var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
+
+        Assert.Equal(1, psobject!.Property<long>("value"));
+        Assert.Equal(new object[] { 1, 2 }, psobject!.Property<object[]>("valueArray"));
+
+        // value2 was removed
+        Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
+
+        // object was added and objectArray
+        Assert.Equal(
+            expected: new[] { "object", "objectArray" },
+            actual: node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Select(c => c.Name));
+    }
+
+    [Fact]
+    public void SetItem_replaces_properties_from_PSObject()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var node = new JObjectAdapter(new JObject
+        {
+            ["value"] = new JValue("text"),
+            ["value2"] = new JValue(2)
+        });
+
+        var newData = new PSObject();
+        newData.Properties.Add(new PSNoteProperty("object", new PSObject()));
+        newData.Properties.Add(new PSNoteProperty("objectArray", new object[] { new PSObject(), new PSObject() }));
+        newData.Properties.Add(new PSNoteProperty("value", 1l));
+        newData.Properties.Add(new PSNoteProperty("valueArray", new[] { 1, 2 }));
+
+        this.providerMock
+            .Setup(p => p.Force)
+            .Returns(false);
 
         // ACT
         // override node with new data
@@ -507,6 +549,37 @@ public class JObjectAdapterTest
         {
             { "property2" , "text" },
         };
+        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
+
+        // ASSERT
+        // the node was created as a container node
+        Assert.True(result.Created);
+        Assert.Equal("container1", result!.Name);
+
+        // a JObject was added to the parent node
+        Assert.True(underlying.TryGetValue("container1", out var added));
+
+        // the property was kept as well.
+        Assert.Equal("text", added["property2"]!.Value<string>());
+    }
+
+    [Fact]
+    public void NewChildItem_creates_JObject_item_from_PSObject()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var underlying = new JObject
+        {
+            { "property" , "text" },
+        };
+
+        var node = new JObjectAdapter(underlying);
+
+        // ACT
+        var value = new PSObject();
+        value.Properties.Add(new PSNoteProperty("property2", "text"));
+
         var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
 
         // ASSERT
@@ -1958,7 +2031,7 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void NewItemProperty_create_child()
+    public void NewItemProperty_creating_child_as_property_fails()
     {
         // ARRANGE
         var root = new JObject();
@@ -1968,7 +2041,7 @@ public class JObjectAdapterTest
 
         // ACT
         // create array fails b/c of Newtonsoft Json not b/c of the adapter prohibiting it.
-        Assert.Throws<ArgumentException>(() => rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "objectArray", null, new[] { new { data = 1 } }));
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "objectArray", null, new[] { new { data = 1 } });
 
         // ASSERT
         // property wasn't created

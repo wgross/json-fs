@@ -45,6 +45,50 @@ public abstract class JAdapterBase : IServiceProvider
         return IsValueToken(jarray.First());
     }
 
+    protected static bool IsValueType(Type type)
+    {
+        if (type.IsValueType)
+            return true;
+        if (type.IsArray)
+            return IsValueType(type.GetElementType()!);
+        if (type == typeof(string))
+            return true;
+        return false;
+    }
+
+    protected static void IfValueSemantic(object? value, Action<JToken> then)
+    {
+        if (value is null)
+            then(JValue.CreateNull());
+        else if (value is string str)
+            then(new JValue(value));
+        else if (value.GetType().IsArray && IsValueType(value.GetType()))
+            then(new JArray(value));
+        else if (value.GetType().IsClass)
+            return;
+        else
+            then(new JValue(value));
+    }
+
+    protected static void IfValueSemantic(JToken token, Action<JToken> then)
+    {
+        switch (token.Type)
+        {
+            case JTokenType.Null:
+                IfValueSemantic((object?)null, then);
+                return;
+
+            case JTokenType.Object:
+                return;
+
+            case JTokenType.Array:
+            case JTokenType.String:
+            default:
+                IfValueSemantic(((JValue)token).Value, then);
+                return;
+        }
+    }
+
     #endregion Define value semantics
 
     #region Define child semantics
@@ -52,6 +96,11 @@ public abstract class JAdapterBase : IServiceProvider
     protected static bool IsChildProperty(JProperty property) => !IsValueProperty(property);
 
     protected static bool IsChildToken(JToken token) => !IsValueToken(token);
+
+    protected static bool IsChildType(Type type) => !IsValueType(type);
+
+    protected static bool IsChildArrayType(Type type) => type.IsArray && IsChildType(type.GetElementType()!);
+
 
     #endregion Define child semantics
 

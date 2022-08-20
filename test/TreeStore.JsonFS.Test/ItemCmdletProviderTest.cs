@@ -184,6 +184,50 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_sets_item_value_from_hashtable()
+    {
+        // ARRANGE
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        });
+
+        var newValue = new JObject
+        {
+            ["value1"] = new JValue(1)
+        };
+
+        var content = this.PowerShell
+            .AddCommand("ConvertFrom-Json")
+            .AddArgument(newValue.ToString())
+            .Invoke().Single();
+
+        this.PowerShell.Commands.Clear();
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Set-Item")
+            .AddParameter("Path", @"test:\child")
+            .AddParameter("Value", content)
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(1, result.Property<long>("value1"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(newValue["data"], ((JObject)r["child"]!)["data"]);
+        });
+    }
+
+    [Fact]
     public void Powershell_sets_item_value_from_string()
     {
         // ARRANGE

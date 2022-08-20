@@ -104,7 +104,7 @@ public sealed class JsonFsRootProvider
 
             return JObject.Load(jsonReader);
         }
-        catch (JsonReaderException ex)
+        catch (JsonReaderException)
         {
             if (sourceFile.Length > 0)
             {

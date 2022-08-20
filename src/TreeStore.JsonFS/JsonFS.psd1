@@ -13,5 +13,11 @@
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
     Description = 'Mount JSON files as PowerShell drives'
+    PrivateData = @{
+        PSData = @{
+            ProjectUri = 'https://github.com/wgross/json-fs'
+            Tags = @('PSEdition_Core','json','Provider')
+        }
+    }
 }
 
