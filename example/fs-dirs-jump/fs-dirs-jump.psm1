@@ -77,7 +77,6 @@ function Get-Jump {
     [CmdletBinding(DefaultParameterSetName="asList")]
     [OutputType([Jump])]
     param(
-        [ArgumentCompleter({$wordToComplete = $args[2]; Get-Jump | Select-Object -ExpandProperty Name | Where-Object { $_.StartsWith($wordToComplete, [System.StringComparison]::OrdinalIgnoreCase) }})]
         [Parameter(Position=0,ParameterSetName="byName")]
         [string]$Name
     )
@@ -106,7 +105,6 @@ function Remove-Jump {
     #>
     [CmdletBinding()]
     param(
-        [ArgumentCompleter({$wordToComplete = $args[2]; Get-Jump | Select-Object -ExpandProperty Name | Where-Object { $_.StartsWith($wordToComplete, [System.StringComparison]::OrdinalIgnoreCase) }})]
         [Parameter(Mandatory)]
         [string]$Name
     )
@@ -128,7 +126,6 @@ function Invoke-Jump {
     #>
     [CmdletBinding()]
     param(
-        [ArgumentCompleter({$wordToComplete = $args[2]; Get-Jump | Select-Object -ExpandProperty Name | Where-Object { $_.StartsWith($wordToComplete, [System.StringComparison]::OrdinalIgnoreCase) }})]
         [Parameter(ValueFromPipeline,Position=0)]
         [string]$Name = "back"
     )
