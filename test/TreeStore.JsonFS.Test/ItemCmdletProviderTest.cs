@@ -32,6 +32,33 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_opens_empty_file_and_reads_root_node()
+    {
+        // ARRANGE
+        File.WriteAllText(this.JsonFilePath, "");
+        this.ArrangeFileSystem(this.JsonFilePath);
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.Equal("test:", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+    }
+
+    [Fact]
     public void Powershell_reads_root_node()
     {
         // ARRANGE

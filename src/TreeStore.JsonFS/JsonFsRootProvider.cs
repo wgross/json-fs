@@ -51,7 +51,7 @@ public sealed class JsonFsRootProvider
     public JObject GetRootJObject()
     {
         if (this.rootNode is null)
-            this.rootNode = this.ReadFile();
+            this.rootNode = this.ReadFile(new FileInfo(this.path));
 
         return this.rootNode;
     }
@@ -69,13 +69,14 @@ public sealed class JsonFsRootProvider
 
     private JObject CreateOrReadFile()
     {
-        if (File.Exists(this.path))
-            return this.ReadFile();
+        var sourceFile = new FileInfo(this.path);
+        if (sourceFile.Exists)
+            return this.ReadFile(sourceFile);
         else
-            return this.CreateFile();
+            return this.CreateFile(sourceFile);
     }
 
-    private JObject CreateFile()
+    private JObject CreateFile(FileInfo sourceFile)
     {
         var newRoot = new JObject();
 
@@ -92,22 +93,32 @@ public sealed class JsonFsRootProvider
         return newRoot;
     }
 
-    private JObject ReadFile()
+    private JObject ReadFile(FileInfo sourceFile)
     {
         this.watcher.EnableRaisingEvents = false;
 
-        using var file = File.Open(this.path, ReadJsonFileMode);
-
         try
         {
-            using var stream = new StreamReader(file);
-            using var reader = new JsonTextReader(stream);
+            using var streamReader = sourceFile.OpenText();
+            using var jsonReader = new JsonTextReader(streamReader);
 
-            return JObject.Load(reader);
+            return JObject.Load(jsonReader);
+        }
+        catch (JsonReaderException ex)
+        {
+            if (sourceFile.Length > 0)
+            {
+                // there is something different in the file.
+                throw;
+            }
+            else
+            {
+                // just return the JObject and overwrite whats in the file on change.
+                return new JObject();
+            }
         }
         finally
         {
-            file.Close();
             this.watcher.EnableRaisingEvents = true;
         }
     }
