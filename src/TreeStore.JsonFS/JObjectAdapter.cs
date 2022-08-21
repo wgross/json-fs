@@ -98,36 +98,24 @@ public sealed class JObjectAdapter : JAdapterBase,
     {
         this.RemoveValueProperies();
 
+        using var handle = this.BeginModify(provider);
+
         foreach (var p in psobject.Properties)
             IfValueSemantic(p.Value, then: jt => this.payload[p.Name] = jt);
-
-        // exceptions happening before this line let the node unchanged.
-        using var handle = this.BeginModify(provider);
     }
 
     private void SetItemFromJObject(ICmdletProvider provider, JObject jobject)
     {
         this.RemoveValueProperies();
 
+        using var handle = this.BeginModify(provider);
+
         foreach (var p in jobject.Properties().Where(IsValueProperty))
             this.payload[p.Name] = p.Value;
-
-        // exceptions happening before this line let the node unchanged.
-        using var handle = this.BeginModify(provider);
     }
 
     private void SetItemFromString(ICmdletProvider provider, string json)
-    {
-        var jobjectFromString = JObject.Parse(json);
-
-        this.RemoveValueProperies();
-
-        foreach (var p in jobjectFromString.Properties().Where(IsValueProperty))
-            this.payload[p.Name] = p.Value;
-
-        // exceptions happening before this line let the node unchanged.
-        using var handle = this.BeginModify(provider);
-    }
+        => this.SetItemFromJObject(provider, JObject.Parse(json));
 
     private void RemoveValueProperies()
     {
@@ -208,8 +196,6 @@ public sealed class JObjectAdapter : JAdapterBase,
         if (this.payload.TryGetValue(childName, out var _))
             throw new InvalidOperationException($"A property(name='{childName}') already exists");
 
-        using var handle = this.BeginModify(provider);
-
         return newItemValue switch
         {
             JObject jobject => this.NewChildItemFromJObject(provider, childName, itemTypeName, jobject),
@@ -225,24 +211,27 @@ public sealed class JObjectAdapter : JAdapterBase,
     }
 
     private NewChildItemResult NewChildItemFromJson(ICmdletProvider provider, string childName, string? itemTypeName, string json)
-    {
-        var parsedObject = JObject.Parse(json);
-
-        this.payload[childName] = parsedObject;
-
-        return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(parsedObject));
-    }
+        => this.NewChildItemFromJObject(provider, childName, itemTypeName, JObject.Parse(json));
 
     private NewChildItemResult NewChildItemFromJObject(ICmdletProvider provider, string childName, string? itemTypeName, JObject jobject)
     {
-        this.payload[childName] = jobject;
+        JObject newChildNode = new();
+        JObjectAdapter newChildAdpater = new(newChildNode);
 
-        return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(jobject));
+        using var handle = this.BeginModify(provider);
+
+        newChildAdpater.SetItemFromJObject(provider, jobject);
+
+        this.payload[childName] = newChildNode;
+
+        return new(Created: true, Name: childName, NodeServices: newChildAdpater);
     }
 
     private NewChildItemResult NewChildItemEmpty(ICmdletProvider provider, string childName, string? itemTypeName)
     {
         JObject emptyObject = new();
+
+        using var handle = this.BeginModify(provider);
 
         this.payload[childName] = emptyObject;
 
@@ -254,12 +243,13 @@ public sealed class JObjectAdapter : JAdapterBase,
         ArgumentNullException.ThrowIfNull(childName, nameof(childName));
 
         JObject childObject = new();
-
-        this.payload[childName] = childObject;
-
         JObjectAdapter jobjectAdapter = new(childObject);
 
+        using var handle = this.BeginModify(provider);
+
         jobjectAdapter.SetItemFromPSObject(provider, newItemValue);
+
+        this.payload[childName] = childObject;
 
         return new(Created: true, Name: childName, NodeServices: jobjectAdapter);
     }

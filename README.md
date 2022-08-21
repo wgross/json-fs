@@ -1,6 +1,6 @@
-# json-fs
+# JsonFS
 
-Mounting of JSON files as PowerShell drives. 
+Mounting of JSON files as PowerShell drives.
 
 ## Using the Powershell Module
 
@@ -40,17 +40,19 @@ Would create a file system with:
 - object.value1, object.text1: properties of the item when calling `Get-Item -Path /object`
 - value2, text2: properties of the root item when calling `Get-Item -Path /`
 
-Properties at items can be created using `New-ItemProperty` or `Set-ItemProperty -Force`. 
+Properties at items can be created using `New-ItemProperty` or `Set-ItemProperty -Force`.
 All other item property commandlets are applicable too.
 
 ## Release Notes
 
-- 0.1.0: first release 
+- 0.1.0: first release
 - 0.2.0:
-    - Set-Item: replaces all value properties, doesn't touch child properties
-## Features to come:
+  - Set-Item: replaces all value properties, doesn't touch child properties
+  - New-Item: like Set-Item, only value properties are created
 
-- Download from powershell gallery
+## Features to come
+
+- Set-/Get-Content support
 
 ## Building the module
 

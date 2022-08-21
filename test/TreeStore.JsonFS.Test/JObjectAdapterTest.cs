@@ -515,7 +515,7 @@ public class JObjectAdapterTest
     #region INewChildItem
 
     [Fact]
-    public void NewChildItem_creates_JObject_item()
+    public void NewChildItem_creates_empty_JObject()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -541,14 +541,14 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void NewChildItem_creates_JObject_item_from_JObject()
+    public void NewChildItem_creates_JObject_value_properties_from_JObject()
     {
         // ARRANGE
         this.ArrangeBeginModification();
 
         var underlying = new JObject
         {
-            { "property" , "text" },
+            ["property"] = "text",
         };
 
         var node = new JObjectAdapter(underlying);
@@ -556,7 +556,10 @@ public class JObjectAdapterTest
         // ACT
         var value = new JObject()
         {
-            { "property2" , "text" },
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(1l, 2l),
+            ["object"] = new JObject(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
         };
         var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
 
@@ -568,8 +571,14 @@ public class JObjectAdapterTest
         // a JObject was added to the parent node
         Assert.True(underlying.TryGetValue("container1", out var added));
 
-        // the property was kept as well.
-        Assert.Equal("text", added["property2"]!.Value<string>());
+        // array was added, value overrides the old value
+        var psobject = result.NodeServices!.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
+
+        Assert.Equal(1, psobject!.Property<long>("value"));
+        Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("valueArray"));
+
+        // object and objectArray weren't added, the original children are still there
+        Assert.Empty(result.NodeServices!.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object));
     }
 
     [Fact]
@@ -588,6 +597,9 @@ public class JObjectAdapterTest
         // ACT
         var value = new PSObject();
         value.Properties.Add(new PSNoteProperty("property2", "text"));
+        value.Properties.Add(new PSNoteProperty("value", 1));
+        value.Properties.Add(new PSNoteProperty("valueArray", new[] { 1l, 2l }));
+        value.Properties.Add(new PSNoteProperty("objectArray", new[] { new PSObject(), new PSObject() }));
 
         var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
 
@@ -604,33 +616,44 @@ public class JObjectAdapterTest
     }
 
     [Fact]
-    public void NewChildItem_creates_JObject_item_from_Json()
+    public void NewChildItem_creates_JObject_value_properties_from_JSON()
     {
         // ARRANGE
         this.ArrangeBeginModification();
 
         var underlying = new JObject
         {
-            { "property" , "text" },
+            ["property"] = "text",
         };
 
         var node = new JObjectAdapter(underlying);
 
         // ACT
-        var value = new JObject { ["property2"] = new JValue("text") }.ToString();
-
-        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
+        var value = new JObject()
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(1l, 2l),
+            ["object"] = new JObject(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+        };
+        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value.ToString());
 
         // ASSERT
-        // the node was created as container
+        // the node was created as a container node
         Assert.True(result.Created);
         Assert.Equal("container1", result!.Name);
 
-        // the node was added as JObject to the parent node.
+        // a JObject was added to the parent node
         Assert.True(underlying.TryGetValue("container1", out var added));
 
-        // the property was kept too
-        Assert.Equal("text", added!["property2"]!.Value<string>());
+        // array was added, value overrides the old value
+        var psobject = result.NodeServices!.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
+
+        Assert.Equal(1, psobject!.Property<long>("value"));
+        Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("valueArray"));
+
+        // object and objectArray weren't added, the original children are still there
+        Assert.Empty(result.NodeServices!.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object));
     }
 
     [Fact]
