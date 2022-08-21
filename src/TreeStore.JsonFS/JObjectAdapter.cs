@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-
-namespace TreeStore.JsonFS;
+﻿namespace TreeStore.JsonFS;
 
 /// <summary>
 /// Implements an adapter between TreeStores ProviderNode and <see cref="Newtonsoft.Json.Linq.JObject"/>.
@@ -98,26 +96,10 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     private void SetItemFromPSObject(ICmdletProvider provider, PSObject psobject)
     {
-        ((IList)this.payload!).Clear();
+        this.RemoveValueProperies();
 
         foreach (var p in psobject.Properties)
-        {
-            switch (p.Value)
-            {
-                case PSObject pso:
-                    this.NewChildItemFromPSObject(provider, p.Name, null, pso);
-                    break;
-
-                case PSObject[] psoArray:
-                    for (int i = 0; i < psoArray.Length; i++)
-                        this.NewChildItemFromPSObject(provider, i.ToString(CultureInfo.InvariantCulture), null, psoArray[i]);
-                    break;
-
-                default:
-                    IfValueSemantic(p.Value, then: jt => this.payload[p.Name] = jt);
-                    break;
-            }
-        }
+            IfValueSemantic(p.Value, then: jt => this.payload[p.Name] = jt);
 
         // exceptions happening before this line let the node unchanged.
         using var handle = this.BeginModify(provider);
@@ -125,9 +107,9 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     private void SetItemFromJObject(ICmdletProvider provider, JObject jobject)
     {
-        ((IList)this.payload!).Clear();
+        this.RemoveValueProperies();
 
-        foreach (var p in jobject.Properties())
+        foreach (var p in jobject.Properties().Where(IsValueProperty))
             this.payload[p.Name] = p.Value;
 
         // exceptions happening before this line let the node unchanged.
@@ -138,13 +120,19 @@ public sealed class JObjectAdapter : JAdapterBase,
     {
         var jobjectFromString = JObject.Parse(json);
 
-        ((IList)this.payload!).Clear();
+        this.RemoveValueProperies();
 
-        foreach (var p in jobjectFromString.Properties())
+        foreach (var p in jobjectFromString.Properties().Where(IsValueProperty))
             this.payload[p.Name] = p.Value;
 
         // exceptions happening before this line let the node unchanged.
         using var handle = this.BeginModify(provider);
+    }
+
+    private void RemoveValueProperies()
+    {
+        foreach (var vp in this.ValueProperties().ToArray())
+            this.payload.Remove(vp.Name);
     }
 
     #endregion ISetItem

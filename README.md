@@ -43,6 +43,11 @@ Would create a file system with:
 Properties at items can be created using `New-ItemProperty` or `Set-ItemProperty -Force`. 
 All other item property commandlets are applicable too.
 
+## Release Notes
+
+- 0.1.0: first release 
+- 0.2.0:
+    - Set-Item: replaces all value properties, doesn't touch child properties
 ## Features to come:
 
 - Download from powershell gallery

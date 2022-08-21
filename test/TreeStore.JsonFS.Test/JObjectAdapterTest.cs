@@ -67,7 +67,7 @@ public class JObjectAdapterTest
     #region ISetItem
 
     [Fact]
-    public void SetItem_replaces_properties_from_JObject()
+    public void SetItem_replaces_value_properties_from_JObject()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -75,7 +75,9 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject
         {
             ["value"] = new JValue("text"),
-            ["value2"] = new JValue(2)
+            ["value2"] = new JValue(2),
+            ["childObject"] = new JObject(),
+            ["childArray"] = new JArray(new JObject())
         });
 
         var newData = new JObject()
@@ -100,14 +102,14 @@ public class JObjectAdapterTest
         // value2 was removed
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
 
-        // object was added and objectArray
+        // object and objectArray weren't added, the original children are still there
         Assert.Equal(
-            expected: new[] { "object", "objectArray" },
+            expected: new[] { "childObject", "childArray" },
             actual: node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Select(c => c.Name));
     }
 
     [Fact]
-    public void SetItem_replaces_properties_from_PSObject()
+    public void SetItem_replaces_value_properties_from_PSObject()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -115,7 +117,9 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject
         {
             ["value"] = new JValue("text"),
-            ["value2"] = new JValue(2)
+            ["value2"] = new JValue(2),
+            ["childObject"] = new JObject(),
+            ["childArray"] = new JArray(new JObject())
         });
 
         var newData = new PSObject();
@@ -142,14 +146,14 @@ public class JObjectAdapterTest
         // value2 was removed
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
 
-        // object was added and objectArray
+        // object and objectArray weren't added, the original children are still there
         Assert.Equal(
-            expected: new[] { "object", "objectArray" },
+            expected: new[] { "childObject", "childArray" },
             actual: node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Select(c => c.Name));
     }
 
     [Fact]
-    public void SetItem_replaces_from_string()
+    public void SetItem_replaces_value_properties_from_string()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -157,14 +161,17 @@ public class JObjectAdapterTest
         var node = new JObjectAdapter(new JObject
         {
             ["value"] = new JValue("text"),
-            ["value2"] = new JValue(2)
+            ["value2"] = new JValue(2),
+            ["childObject"] = new JObject(),
+            ["childArray"] = new JArray(new JObject())
         });
 
         var newData = new JObject()
         {
             ["object"] = new JObject(),
             ["value"] = new JValue(1),
-            ["valueArray"] = new JArray(1, 2)
+            ["valueArray"] = new JArray(1, 2),
+            ["objectArray"] = new JObject(),
         };
 
         // ACT
@@ -181,8 +188,10 @@ public class JObjectAdapterTest
         // value2 was removed
         Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
 
-        // object was added
-        Assert.Equal("object", node.GetRequiredService<IGetChildItem>().GetChildItems(provider: this.providerMock.Object).Single().Name);
+        // object and objectArray weren't added, the original children are still there
+        Assert.Equal(
+            expected: new[] { "childObject", "childArray" },
+            actual: node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Select(c => c.Name));
     }
 
     //[Fact]
