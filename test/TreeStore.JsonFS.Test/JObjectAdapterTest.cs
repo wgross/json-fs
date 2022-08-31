@@ -1,14 +1,15 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Collections.Generic;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Nodes;
 using TreeStore.Core.Providers;
 
 namespace TreeStore.JsonFS.Test;
 
-public class JObjectAdapterTest
+public class JObjectAdapterTest : IDisposable
 {
-    private readonly MockRepository mocks = new MockRepository(MockBehavior.Strict);
+    private readonly MockRepository mocks = new(MockBehavior.Strict);
     private readonly Mock<ICmdletProvider> providerMock;
     private readonly Mock<IDisposable> disopsableMock;
 
@@ -127,10 +128,6 @@ public class JObjectAdapterTest
         newData.Properties.Add(new PSNoteProperty("objectArray", new object[] { new PSObject(), new PSObject() }));
         newData.Properties.Add(new PSNoteProperty("value", 1l));
         newData.Properties.Add(new PSNoteProperty("valueArray", new[] { 1, 2 }));
-
-        this.providerMock
-            .Setup(p => p.Force)
-            .Returns(false);
 
         // ACT
         // override node with new data
@@ -660,8 +657,6 @@ public class JObjectAdapterTest
     public void NewChildItem_fails_for_existing_property()
     {
         // ARRANGE
-        this.ArrangeBeginModification();
-
         var underlying = new JObject
         {
             { "property" , "text" },
@@ -1740,8 +1735,6 @@ public class JObjectAdapterTest
     public void RemoveItemProperty_removing_property_ignores_child_object_properties()
     {
         // ARRANGE
-        this.ArrangeBeginModification();
-
         var root = new JObject
         {
             ["child"] = new JObject(),
@@ -1760,8 +1753,6 @@ public class JObjectAdapterTest
     public void RemoveItemProperty_removing_property_ignores_child_array_properties()
     {
         // ARRANGE
-        this.ArrangeBeginModification();
-
         var root = new JObject
         {
             ["child"] = new JArray(new JObject()),
@@ -2172,4 +2163,65 @@ public class JObjectAdapterTest
     }
 
     #endregion IRenameItemProperty
+
+    #region IGetItemContent
+
+    [Fact]
+    public void GetItemContent_returns_json_string()
+    {
+        // ARRANGE
+        var content = new JObject
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+            ["object"] = new JObject(),
+        };
+
+        var adapter = new JObjectAdapter(content);
+
+        // ACT
+        // the block count has no meaning in this context
+        var result = adapter.GetRequiredService<IGetItemContent>().GetItemContentReader(this.providerMock.Object)!.Read(-1);
+
+        // ASSERT
+        Assert.Equal(content.ToString(), result.Cast<string>().Single());
+    }
+
+    #endregion IGetItemContent
+
+    #region ISetItemContent
+
+    [Fact]
+    public void SetItemContent_returns_json_string()
+    {
+        // ARRANGE
+        var content = new JObject();
+
+        var newcontent = new JObject
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+            ["object"] = new JObject(),
+        };
+
+        var adapter = new JObjectAdapter(content);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        // the block count has no meaning in this context
+        var result = adapter
+            .GetRequiredService<ISetItemContent>()
+            .GetItemContentWriter(this.providerMock.Object)!
+            .Write(new List<string>() { newcontent.ToString() });
+
+        // ASSERT
+        Assert.Equal(content.ToString(), result.Cast<string>().Single());
+    }
+
+    #endregion ISetItemContent
 }

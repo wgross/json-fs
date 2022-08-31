@@ -113,6 +113,34 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_reads_root_child_node_with_provider_qualified_path()
+    {
+        // ARRANGE
+        this.ArrangeFileSystem(new JObject()
+        {
+            ["object"] = new JObject(),
+        });
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Get-Item")
+            .AddParameter("Path", @"JsonFS\JsonFS::test:\object")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.Equal("object", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+    }
+
+    [Fact]
     public void Powershell_reads_root_grand_child_node()
     {
         // ARRANGE
@@ -145,13 +173,35 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
     #endregion Get-Item -Path
 
-    #region Set-Item
+    #region Resolve-Path -Path
+
+    [Fact]
+    public void Powershell_resolves_root_node_path()
+    {
+        // ARRANGE
+        this.ArrangeFileSystem(this.JsonFilePath);
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Resolve-Path")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.IsType<PathInfo>(result.BaseObject);
+        Assert.Equal("test", result.Property<PSDriveInfo>("Drive").Name);
+        Assert.Equal("JsonFS", result.Property<ProviderInfo>("Provider").Name);
+    }
+
+    #endregion Resolve-Path -Path
+
+    #region Set-Item -Path
 
     [Fact]
     public void Powershell_sets_item_value_from_JObject()
     {
         // ARRANGE
-
         var root = this.ArrangeFileSystem(new JObject
         {
             ["child"] = new JObject(),
@@ -263,7 +313,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         });
     }
 
-    #endregion Set-Item
+    #endregion Set-Item -Path
 
     #region Clear-Item -Path
 
@@ -376,4 +426,101 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     #endregion Test-Path -Path -PathType
+
+    #region Get-Content
+
+    [Fact]
+    public void Powershell_retrieves_JObject_content()
+    {
+        // ARRANGE
+        var json = new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        };
+
+        var root = this.ArrangeFileSystem(json);
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Get-Content")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(json.ToString(), result);
+    }
+
+    [Fact]
+    public void Powershell_retrieves_JArray_content()
+    {
+        // ARRANGE
+        var json = new JObject
+        {
+            ["child"] = new JArray(
+                new JObject
+                {
+                    ["value1"] = 1
+                },
+                new JObject
+                {
+                    ["value2"] = 1
+                }),
+        };
+
+        var root = this.ArrangeFileSystem(json);
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Get-Content")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(json.ChildArray("child")[0].ToString(), result[0]);
+        Assert.Equal(json.ChildArray("child")[1].ToString(), result[1]);
+    }
+
+    #endregion Get-Content
+
+    #region Write-Content
+
+    [Fact]
+    public void Powershell_writes_JObject_content()
+    {
+        // ARRANGE
+        var json = new JObject();
+
+        var root = this.ArrangeFileSystem(json);
+
+        var content = new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        };
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Set-Content")
+            .AddParameter("Path", @"test:\")
+            .AddParameter("Value", content.ToString())
+            .AddStatement()
+            .AddCommand("Get-Content")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(content.ToString(), result);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(content.ToString(), r.ToString());
+        });
+    }
+
+    #endregion Write-Content
 }

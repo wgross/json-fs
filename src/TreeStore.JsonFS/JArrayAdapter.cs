@@ -6,9 +6,10 @@ public sealed class JArrayAdapter : JAdapterBase,
     // ItemCmdletProvider
     IGetItem, ISetItem,
     // ContainerCmdletProvider
-    IGetChildItem, IRemoveChildItem, INewChildItem
-// NOT SUPPORTED YET
-// ICopyChildItem
+    IGetChildItem, IRemoveChildItem, INewChildItem,
+    // NOT SUPPORTED YET
+    // ICopyChildItem
+    IGetItemContent, ISetItemContent, IClearItemContent
 {
     internal readonly JArray payload;
 
@@ -42,6 +43,11 @@ public sealed class JArrayAdapter : JAdapterBase,
             foreach (var child in jarrayFromString)
                 this.payload.Add(child);
         }
+    }
+
+    internal void ClearItemContent(ICmdletProvider provider)
+    {
+        throw new NotImplementedException();
     }
 
     #endregion ISetItem
@@ -105,7 +111,7 @@ public sealed class JArrayAdapter : JAdapterBase,
 
         if (string.IsNullOrEmpty(childName))
         {
-            return AppendNewArrrayItem(provider, newValue);
+            return this.AppendNewArrrayItem(provider, newValue);
         }
 
         if (!int.TryParse(childName, out var index))
@@ -134,7 +140,7 @@ public sealed class JArrayAdapter : JAdapterBase,
         };
     }
 
-    private NewChildItemResult AppendNewArrrayItem(ICmdletProvider provider, JToken newItemValue)
+    internal NewChildItemResult AppendNewArrrayItem(ICmdletProvider provider, JToken newItemValue)
     {
         using var handle = this.BeginModify(provider);
 
@@ -153,6 +159,31 @@ public sealed class JArrayAdapter : JAdapterBase,
     }
 
     #endregion INewChildItem
+
+    #region IGetItemContent
+
+    /// <inheritdoc/>
+    IContentReader? IGetItemContent.GetItemContentReader(ICmdletProvider provider) => new JArrayContentReader(this.payload);
+
+    #endregion IGetItemContent
+
+    #region ISetItemCOntent
+
+    /// <inheritdoc/>
+    IContentWriter? ISetItemContent.GetItemContentWriter(ICmdletProvider provider) => new JArrayContentWriter(provider, this);
+
+    #endregion ISetItemCOntent
+
+    #region IClearItemContent
+
+    void IClearItemContent.ClearItemContent(ICmdletProvider provider)
+    {
+        using var handle = this.BeginModify(provider);
+
+        this.payload.RemoveAll();
+    }
+
+    #endregion IClearItemContent
 
     #region // NOT SUPPORTED YET // ICopyChildItem
 

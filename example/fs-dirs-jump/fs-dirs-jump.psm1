@@ -1,5 +1,7 @@
 # mount the default dreive with the jumps
-New-PSDrive -Name Jumps -PSProvider "JsonFS" -Root "$PSScriptRoot\jumps.json" -Scope Global
+if($null -eq (Get-PSDrive -Name "Jumps")) {
+    New-PSDrive -Name "Jumps" -PSProvider "JsonFS" -Root "$PSScriptRoot\jumps.json" -Scope Global
+}
 
 # Make sure that the current computer name is there as container
 if(!(Test-Path -Path "jumps:\$Env:COMPUTERNAME")) {
@@ -54,6 +56,7 @@ function Set-Jump {
         # Set the item property 'destination' to the path. -Force creates the property if it 
         # doen't exists yet
         Set-ItemProperty -Path $Path -Name "destination" -Value ([string]$Destination) -Force
+        Set-ItemProperty -Path $jump.Path -Name modified -Value (Get-Date).ToString("yyyy-MM-dd-hh-mm-ss") -Force
     }
 }
 
@@ -61,9 +64,11 @@ function Set-Jump {
 class Jump {
     $Name
     $Destination
-    Jump($name, $destination) {
+    $Path 
+    Jump($name, $destination, $path) {
         $this.Name = $name
         $this.Destination = $destination
+        $this.Path = $path
     }
 }
 
@@ -84,12 +89,13 @@ function Get-Jump {
         switch($PSCmdlet.ParameterSetName) {
             "byName" {
                 if(Test-Path -Path "jumps:\$Env:COMPUTERNAME\$Name") {
-                    [Jump]::new($Name, (Get-Item -Path "jumps:\$Env:COMPUTERNAME\$Name").destination) | Write-Output
+                    $jumpItem = Get-Item -Path "jumps:\$Env:COMPUTERNAME\$Name"
+                    [Jump]::new($jumpItem.PSChildName, $jumpItem.destination, "jumps:\$Env:COMPUTERNAME\$Name") | Write-Output
                 }
             }
             "asList" {
                 Get-ChildItem -Path "jumps:\$Env:ComputerName" | ForEach-Object -Process {
-                    [Jump]::new($_.PSChildName, $_.destination)
+                    [Jump]::new($_.PSChildName, $_.destination, "jumps:\$Env:ComputerName\$($_.PSChildName)")
                 }
             }
         }
@@ -125,6 +131,7 @@ function Invoke-Jump {
         Name of the jump destination. 
     #>
     [CmdletBinding()]
+    [Alias("j")]
     param(
         [Parameter(ValueFromPipeline,Position=0)]
         [string]$Name = "back"
@@ -138,7 +145,7 @@ function Invoke-Jump {
                 if(Test-Path -Path $jump.Destination -PathType Container) {
                     # if the location change will be successful remember the current location as 'back'
                     Set-Jump -Name 'back' -Destination $PWD | Out-Null
-
+                    Set-ItemProperty -Path $jump.Path -Name visited -Value (Get-Date).ToString("yyyy-MM-dd-hh-mm-ss") -Force
                     # now jump ...
                     Set-Location -Path $jump.Destination
                 }

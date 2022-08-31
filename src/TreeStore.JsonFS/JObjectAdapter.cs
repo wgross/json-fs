@@ -12,7 +12,9 @@ public sealed class JObjectAdapter : JAdapterBase,
     // NavigationCmdletProvider
     IMoveChildItem,
     // IPropertyCmdletProvider
-    IClearItemProperty, ISetItemProperty, IRemoveItemProperty, ICopyItemProperty, IMoveItemProperty, INewItemProperty, IRenameItemProperty
+    IClearItemProperty, ISetItemProperty, IRemoveItemProperty, ICopyItemProperty, IMoveItemProperty, INewItemProperty, IRenameItemProperty,
+    // IContentProvider
+    IGetItemContent, ISetItemContent, IClearItemContent
 {
     internal readonly JObject payload;
 
@@ -96,9 +98,9 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     private void SetItemFromPSObject(ICmdletProvider provider, PSObject psobject)
     {
-        this.RemoveValueProperies();
-
         using var handle = this.BeginModify(provider);
+
+        this.RemoveValueProperies();
 
         foreach (var p in psobject.Properties)
             IfValueSemantic(p.Value, then: jt => this.payload[p.Name] = jt);
@@ -106,9 +108,9 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     private void SetItemFromJObject(ICmdletProvider provider, JObject jobject)
     {
-        this.RemoveValueProperies();
-
         using var handle = this.BeginModify(provider);
+
+        this.RemoveValueProperies();
 
         foreach (var p in jobject.Properties().Where(IsValueProperty))
             this.payload[p.Name] = p.Value;
@@ -585,4 +587,28 @@ public sealed class JObjectAdapter : JAdapterBase,
     }
 
     #endregion IRenameItemProperty
+
+    #region IGetItemContent
+
+    /// <inheritdoc/>
+    IContentReader? IGetItemContent.GetItemContentReader(ICmdletProvider provider) => new JObjectContentReader(this.payload);
+
+    #endregion IGetItemContent
+
+    #region ISetItemContent
+
+    IContentWriter? ISetItemContent.GetItemContentWriter(ICmdletProvider provider) => new JObjectContentWriter(provider, this);
+
+    #endregion ISetItemContent
+
+    #region IClearItemContent
+
+    void IClearItemContent.ClearItemContent(ICmdletProvider provider)
+    {
+        using var handle = this.BeginModify(provider);
+
+        this.payload.RemoveAll();
+    }
+
+    #endregion IClearItemContent
 }

@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS;
+﻿using System.Management.Automation.Language;
+
+namespace TreeStore.JsonFS;
 
 [CmdletProvider(JsonFsCmdletProvider.Id, ProviderCapabilities.None)]
 public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsRootNodeModification
@@ -30,4 +32,23 @@ public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsR
 
         _ => throw new InvalidOperationException($"The PSDriveInfo(type='{this.PSDriveInfo.GetType()}') doesn't support modification.")
     };
+
+    public static CompletionResult[] CompleteArgument(string commandName, string parameterName, string wordToComplete, CommandAst commansAst, Hashtable boundArguments)
+    {
+        if ("Get-ItemProperty".Equals(commandName, StringComparison.OrdinalIgnoreCase))
+        {
+            CompleteGetItemProperty(parameterName, wordToComplete, commansAst, boundArguments);
+        }
+        return Array.Empty<CompletionResult>();
+    }
+
+    private static CompletionResult[] CompleteGetItemProperty(string parameterName, string wordToComplete, CommandAst commansAst, Hashtable boundArguments)
+    {
+        if (!"Name".Equals(parameterName, StringComparison.OrdinalIgnoreCase))
+            return Array.Empty<CompletionResult>();
+
+        if(!boundArguments.ContainsKey("Path"))
+            return Array.Empty<CompletionResult>();
+
+    }
 }

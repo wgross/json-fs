@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Collections.Generic;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Providers;
 
@@ -355,5 +356,72 @@ namespace TreeStore.JsonFS.Test
         }
 
         #endregion INewChildItem
+
+        #region IGetItemContent
+
+        [Fact]
+        public void GetItemContent_returens_JArray_items()
+        {
+            // ARRANGE
+            var content = new JArray(
+                new JObject()
+                {
+                    ["value1"] = 1
+                },
+                new JObject()
+                {
+                    ["value2"] = 2
+                });
+
+            var adapter = new JArrayAdapter(content);
+
+            // ACT & ASSERT
+            // reads single array item from the reader
+            using var reader = adapter.GetRequiredService<IGetItemContent>().GetItemContentReader(this.providerMock.Object);
+
+            Assert.Equal(content[0].ToString(), reader!.Read(1)[0] as string);
+            Assert.Equal(content[1].ToString(), reader!.Read(1)[0] as string);
+        }
+
+        #endregion IGetItemContent
+
+        #region ISetItemContent
+
+        [Fact]
+        public void SetItemContent_returns_JArray_items()
+        {
+            // ARRANGE
+            var json = new JArray();
+
+            var content = new JArray(
+                new JObject()
+                {
+                    ["value1"] = 1
+                },
+                new JObject()
+                {
+                    ["value2"] = 2
+                });
+
+            var adapter = new JArrayAdapter(json);
+
+            this.ArrangeBeginModification();
+
+            // ACT & ASSERT
+            // write array item by item
+            using (var writer = adapter.GetRequiredService<ISetItemContent>().GetItemContentWriter(this.providerMock.Object))
+            {
+                writer!.Write(new List<string> { content[0].ToString() });
+                writer!.Write(new List<string> { content[1].ToString() });
+            }
+
+            // ASSERT
+            using var reader = adapter.GetRequiredService<IGetItemContent>().GetItemContentReader(this.providerMock.Object);
+
+            Assert.Equal(content[0].ToString(), reader!.Read(1)[0] as string);
+            Assert.Equal(content[1].ToString(), reader!.Read(1)[0] as string);
+        }
+
+        #endregion ISetItemContent
     }
 }
