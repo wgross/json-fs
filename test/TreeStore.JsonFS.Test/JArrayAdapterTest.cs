@@ -44,7 +44,7 @@ namespace TreeStore.JsonFS.Test
         #region IGetItem
 
         [Fact]
-        public void GetItem_creates_PSObject_of_JObject()
+        public void GetItem_creates_PSObject_of_JArray()
         {
             // ARRANGE
             var node = new JArrayAdapter(this.ArrangeDefaultArray());
@@ -53,8 +53,49 @@ namespace TreeStore.JsonFS.Test
             var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
 
             // ASSERT
+            Assert.IsType<JsonFsItem>(result.BaseObject);
+            Assert.Equal("", result.Property<string>("Name"));
+
             // array node has no properties
-            Assert.Empty(result.Properties);
+            Assert.Single(result.Properties);
+        }
+
+        [Fact]
+        public void GetItem_creates_PSObject_of_JObject_in_JArray()
+        {
+            // ARRANGE
+            var parent = this.ArrangeDefaultArray();
+
+            var node = new JObjectAdapter((JObject)parent[0]!);
+
+            // ACT
+            var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
+
+            // ASSERT
+            Assert.IsType<JsonFsItem>(result.BaseObject);
+            Assert.Equal("0", result.Property<string>("Name"));
+
+            // array node has no properties
+            Assert.Single(result.Properties);
+        }
+
+        [Fact]
+        public void GetItem_creates_PSObject_of_JArray_in_JArray()
+        {
+            // ARRANGE
+            var parent = this.ArrangeDefaultArray();
+
+            var node = new JArrayAdapter((JArray)parent[1]!);
+
+            // ACT
+            var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
+
+            // ASSERT
+            Assert.IsType<JsonFsItem>(result.BaseObject);
+            Assert.Equal("1", result.Property<string>("Name"));
+
+            // array node has no properties
+            Assert.Single(result.Properties);
         }
 
         #endregion IGetItem

@@ -19,7 +19,7 @@ PS> cd json:\
 
 A json drive only knows container nodes (directories). All JSON objects are shown as containers, all properties having a non-scalar value type are shown as child containers. All properties having a scalar value type (int, string etc) are show as properties of the file system item.
 
-For Arrays a similar semantic is applied: if the first value of an array is a scalar value the whole array is shows as a property. If the first item of the array is an object type the array is show as a child container having children with names `"0","1",..`.
+For arrays a similar semantic is applied: if the first value of an array is a scalar value the whole array is shows as a property. If the first item of the array is an object type the array is show as a child container having children with names `"0","1",..`.
 
 A JSON object like this:
 
@@ -34,7 +34,7 @@ A JSON object like this:
 }
 ```
 
-Would create a file system with:
+..would create a file system with:
 
 - object: a sub directory of the Root when calling `Get-ChildItem -Path /`
 - object.value1, object.text1: properties of the item when calling `Get-Item -Path /object`
@@ -49,6 +49,10 @@ All other item property commandlets are applicable too.
 - 0.2.0:
   - Set-Item: replaces all value properties, doesn't touch child properties
   - New-Item: like Set-Item, only value properties are created
+- 0.3.0:
+  - Support for Get-/Set-/Clear-Content cmdlets using JSON text added
+  - fs item have and underlying type 'JsonFsItem' having a property 'Name'
+  - defualt table type for 'JsonFsItem'
 
 ## Features to come
 

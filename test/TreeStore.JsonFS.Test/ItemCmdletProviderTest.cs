@@ -23,6 +23,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
+        Assert.IsType<JsonFsItem>(psobject.BaseObject);
+        Assert.Equal("", psobject.Property<string>("Name"));
         Assert.Equal("test:", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
@@ -76,6 +78,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
+        Assert.IsType<JsonFsItem>(psobject.BaseObject);
+        Assert.Equal("", psobject.Property<string>("Name"));
         Assert.Equal("test:", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
@@ -104,6 +108,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
+        Assert.IsType<JsonFsItem>(psobject.BaseObject);
+        Assert.Equal("object", psobject.Property<string>("Name"));
         Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
@@ -141,7 +147,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_reads_root_grand_child_node()
+    public void Powershell_reads_root_grand_child_node_from_object()
     {
         // ARRANGE
         this.ArrangeFileSystem(new JObject()
@@ -163,11 +169,43 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
+        Assert.IsType<JsonFsItem>(psobject.BaseObject);
+        Assert.Equal("object", psobject.Property<string>("Name"));
         Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
         Assert.Equal(@"JsonFS\JsonFS::test:\object\object", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+    }
+
+    [Fact]
+    public void Powershell_reads_root_grand_child_node_from_jarray()
+    {
+        // ARRANGE
+        this.ArrangeFileSystem(new JObject()
+        {
+            ["object"] = new JArray(new JObject())
+        });
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\object\0")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.IsType<JsonFsItem>(psobject.BaseObject);
+        Assert.Equal("0", psobject.Property<string>("Name"));
+        Assert.Equal("0", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\object\0", psobject.Property<string>("PSPath"));
         Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
     }
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+    <ViewDefinitions>
+        <View>
+            <Name>default-jsonfsitem</Name>
+            <ViewSelectedBy>
+                <TypeName>TreeStore.JsonFS.JsonFsItem</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                <TableColumnHeader/>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Name</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+    </ViewDefinitions>
+</Configuration>

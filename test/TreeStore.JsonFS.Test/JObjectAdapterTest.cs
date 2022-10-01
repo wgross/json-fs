@@ -51,6 +51,48 @@ public class JObjectAdapterTest : IDisposable
         var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
 
         // ASSERT
+        Assert.IsType<JsonFsItem>(result.BaseObject);
+        Assert.Equal("", result.Property<string>("Name"));
+
+        // value properties are note properties in the PSObject
+        Assert.Equal(1, result!.Property<long>("value"));
+        Assert.Equal(new object[] { 1L, 2L }, result!.Property<object[]>("valueArray"));
+
+        // empty array is value array
+        Assert.Empty(result!.Property<object[]>("emptyArray"));
+
+        // object properties are skipped
+        Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "object"));
+        Assert.Null(result!.Properties.FirstOrDefault(p => p.Name == "objectArray"));
+    }
+
+    [Fact]
+    public void GetItem_creates_PSObject_of_child_JObject()
+    {
+        // ARRANGE
+        var child = new JObject()
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+            ["object"] = new JObject(),
+        };
+
+        var parent = new JObject
+        {
+            ["child"] = child
+        };
+
+        var node = new JObjectAdapter(child);
+
+        // ACT
+        var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
+
+        // ASSERT
+        Assert.IsType<JsonFsItem>(result.BaseObject);
+        Assert.Equal("child", result.Property<string>("Name"));
+
         // value properties are note properties in the PSObject
         Assert.Equal(1, result!.Property<long>("value"));
         Assert.Equal(new object[] { 1L, 2L }, result!.Property<object[]>("valueArray"));
@@ -2207,7 +2249,7 @@ public class JObjectAdapterTest : IDisposable
             ["value"] = new JValue(1),
             ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
             ["emptyArray"] = new JArray(),
-            ["objectArray"] = new JArray(new JObject(), new JObject()), 
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
             ["object"] = new JObject(),
         };
 

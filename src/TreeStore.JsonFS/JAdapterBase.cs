@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS;
+﻿using System.Globalization;
+
+namespace TreeStore.JsonFS;
 
 public abstract class JAdapterBase : IServiceProvider
 {
@@ -101,7 +103,6 @@ public abstract class JAdapterBase : IServiceProvider
 
     protected static bool IsChildArrayType(Type type) => type.IsArray && IsChildType(type.GetElementType()!);
 
-
     #endregion Define child semantics
 
     #region Query properties holding child node semantics
@@ -130,4 +131,13 @@ public abstract class JAdapterBase : IServiceProvider
     protected static JArray CreateDeepArrayClone(JArray jarray) => (JArray)jarray.DeepClone();
 
     #endregion Create clones
+
+    protected string GetNameFromParent(JToken payload)
+    {
+        if (payload.Parent is JProperty jParentProperty)
+            return jParentProperty.Name;
+        if (payload.Parent is JArray jParentArray)
+            return jParentArray.IndexOf(payload).ToString(CultureInfo.InvariantCulture);
+        return "";
+    }
 }

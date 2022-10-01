@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
 	  <LangVersion>latest</LangVersion>
 	  <VersionPrefix>0.3.0</VersionPrefix>
-    <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +15,9 @@
 
   <ItemGroup>
     <None Update="init.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="JsonFs.Format.ps1xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="JsonFS.psm1">
