@@ -14,7 +14,7 @@ public sealed class JObjectAdapter : JAdapterBase,
     // IPropertyCmdletProvider
     IClearItemProperty, ISetItemProperty, IRemoveItemProperty, ICopyItemProperty, IMoveItemProperty, INewItemProperty, IRenameItemProperty,
     // IContentProvider
-    IGetItemContent, ISetItemContent, IClearItemContent
+    IGetItemContent, ISetChildItemContent, IClearItemContent
 {
     internal readonly JObject payload;
 
@@ -230,15 +230,7 @@ public sealed class JObjectAdapter : JAdapterBase,
     }
 
     private NewChildItemResult NewChildItemEmpty(ICmdletProvider provider, string childName, string? itemTypeName)
-    {
-        JObject emptyObject = new();
-
-        using var handle = this.BeginModify(provider);
-
-        this.payload[childName] = emptyObject;
-
-        return new(Created: true, Name: childName, NodeServices: new JObjectAdapter(emptyObject));
-    }
+        => this.NewChildItemFromJObject(provider, childName, itemTypeName, new JObject());
 
     private NewChildItemResult NewChildItemFromPSObject(ICmdletProvider provider, string? childName, string? itemTypeName, PSObject newItemValue)
     {
@@ -595,11 +587,53 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     #endregion IGetItemContent
 
-    #region ISetItemContent
+    #region ISetChildItemContent
 
-    IContentWriter? ISetItemContent.GetItemContentWriter(ICmdletProvider provider) => new JObjectContentWriter(provider, this);
+    IContentWriter? ISetChildItemContent.GetChildItemContentWriter(ICmdletProvider provider, string childName)
+    {
+        if (string.IsNullOrEmpty(childName))
+            return this.GetJObjectContentWriter(provider, this);
 
-    #endregion ISetItemContent
+        if (!this.payload.TryGetValue(childName, out var jtoken))
+        {
+            using var handle = this.BeginModify(provider);
+
+            var newChildItem = this.NewChildItemEmpty(provider, childName, itemTypeName: null);
+            if (newChildItem.Created)
+                return ((ISetChildItemContent)this).GetChildItemContentWriter(provider, childName);
+            else return null;
+        }
+
+        if (IsValueToken(jtoken))
+            throw new InvalidOperationException("Can't set content of value property");
+
+        return jtoken switch
+        {
+            JObject jobject => this.GetJObjectContentWriter(provider, jobject),
+            JArray jarray => this.GetJArrayContentWriter(provider, jarray),
+
+            _ => throw new InvalidOperationException("")
+        };
+    }
+
+    private IContentWriter? GetJObjectContentWriter(ICmdletProvider provider, JObjectAdapter jobjectAdapter)
+    {
+        using var handle = this.BeginModify(provider);
+
+        return new JObjectContentWriter(provider, jobjectAdapter);
+    }
+
+    private IContentWriter? GetJObjectContentWriter(ICmdletProvider provider, JObject jobject)
+        => this.GetJObjectContentWriter(provider, new JObjectAdapter(jobject));
+
+    private IContentWriter? GetJArrayContentWriter(ICmdletProvider provider, JArray jarray)
+    {
+        using var handle = this.BeginModify(provider);
+
+        return new JArrayContentWriter(provider, new JArrayAdapter(jarray));
+    }
+
+    #endregion ISetChildItemContent
 
     #region IClearItemContent
 

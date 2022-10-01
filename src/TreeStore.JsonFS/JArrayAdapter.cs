@@ -9,7 +9,7 @@ public sealed class JArrayAdapter : JAdapterBase,
     IGetChildItem, IRemoveChildItem, INewChildItem,
     // NOT SUPPORTED YET
     // ICopyChildItem
-    IGetItemContent, ISetItemContent, IClearItemContent
+    IGetItemContent, ISetChildItemContent, IClearItemContent
 {
     internal readonly JArray payload;
 
@@ -170,7 +170,7 @@ public sealed class JArrayAdapter : JAdapterBase,
     #region ISetItemCOntent
 
     /// <inheritdoc/>
-    IContentWriter? ISetItemContent.GetItemContentWriter(ICmdletProvider provider) => new JArrayContentWriter(provider, this);
+    IContentWriter? ISetChildItemContent.GetChildItemContentWriter(ICmdletProvider provider, string childName) => new JArrayContentWriter(provider, this);
 
     #endregion ISetItemCOntent
 

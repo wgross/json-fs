@@ -340,7 +340,7 @@ public class JObjectAdapterTest : IDisposable
         // ASSERT
         Assert.Single(result);
 
-        var pso = result.Single().GetItem(this.providerMock.Object);
+        var pso = result.Single().GetItem();
 
         // the child properties are note properties of the PSObject
         Assert.Equal("object", pso.Property<string>("PSChildName"));
@@ -365,7 +365,7 @@ public class JObjectAdapterTest : IDisposable
         // ASSERT
         Assert.Single(result);
 
-        var pso = result.Single().GetItem(this.providerMock.Object);
+        var pso = result.Single().GetItem();
 
         // the child properties are note properties of the PSObject
         Assert.Equal("objectArray", pso.Property<string>("PSChildName"));
@@ -2191,10 +2191,44 @@ public class JObjectAdapterTest : IDisposable
 
     #endregion IGetItemContent
 
-    #region ISetItemContent
+    #region ISetChildItemContent
 
     [Fact]
-    public void SetItemContent_returns_json_string()
+    public void SetItemContent_at_parent_object_returns_json_string()
+    {
+        // ARRANGE
+        var content = new JObject
+        {
+            ["child"] = new JObject()
+        };
+
+        var newcontent = new JObject
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()), 
+            ["object"] = new JObject(),
+        };
+
+        var parentAdapter = new JObjectAdapter(content);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        // set content w/o a child name
+        var result = parentAdapter
+            .GetRequiredService<ISetChildItemContent>()
+            .GetChildItemContentWriter(this.providerMock.Object, "")!
+            .Write(new List<string>() { newcontent.ToString() });
+
+        // ASSERT
+        // the content of the parent was replaced.
+        Assert.Equal(content.ToString(), result.Cast<string>().Single());
+    }
+
+    [Fact]
+    public void SetItemContent_at_child_object_returns_json_string()
     {
         // ARRANGE
         var content = new JObject();
@@ -2208,20 +2242,100 @@ public class JObjectAdapterTest : IDisposable
             ["object"] = new JObject(),
         };
 
-        var adapter = new JObjectAdapter(content);
+        var parentAdapter = new JObjectAdapter(new JObject
+        {
+            ["child"] = content
+        });
 
         this.ArrangeBeginModification();
 
         // ACT
         // the block count has no meaning in this context
-        var result = adapter
-            .GetRequiredService<ISetItemContent>()
-            .GetItemContentWriter(this.providerMock.Object)!
+        var result = parentAdapter
+            .GetRequiredService<ISetChildItemContent>()
+            .GetChildItemContentWriter(this.providerMock.Object, "child")!
             .Write(new List<string>() { newcontent.ToString() });
 
         // ASSERT
         Assert.Equal(content.ToString(), result.Cast<string>().Single());
     }
 
-    #endregion ISetItemContent
+    [Fact]
+    public void SetItemContent_creates_child_object_and_returns_json_string()
+    {
+        // ARRANGE
+        var newcontent = new JObject
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+            ["object"] = new JObject(),
+        };
+
+        var parentAdapter = new JObjectAdapter(new JObject());
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        // the block count has no meaning in this context
+        var result = parentAdapter
+            .GetRequiredService<ISetChildItemContent>()
+            .GetChildItemContentWriter(this.providerMock.Object, "child")!
+            .Write(new List<string>() { newcontent.ToString() });
+
+        // ASSERT
+        Assert.Equal(newcontent.ToString(), result.Cast<string>().Single());
+    }
+
+    [Fact(Skip = "Array isn't parsed.")]
+    public void SetItemContent_creates_child_array_and_returns_json_string()
+    {
+        // ARRANGE
+        var newcontent = new JArray(new JObject(), new JObject());
+
+        var parentAdapter = new JObjectAdapter(new JObject
+        {
+            ["child"] = new JArray(new JObject())
+        });
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        // the block count has no meaning in this context
+        var result = parentAdapter
+            .GetRequiredService<ISetChildItemContent>()
+            .GetChildItemContentWriter(this.providerMock.Object, "child")!
+            .Write(new List<string>() { newcontent.ToString() });
+
+        // ASSERT
+        Assert.Equal(newcontent.ToString(), result.Cast<string>().Single());
+    }
+
+    [Fact]
+    public void SetItemContent_creating_child_fails_on_duplicate_name()
+    {
+        // ARRANGE
+        var newcontent = new JObject
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+            ["object"] = new JObject(),
+        };
+
+        var parentAdapter = new JObjectAdapter(new JObject
+        {
+            ["child"] = new JValue(1)
+        });
+
+        // ACT & ASSERT
+        var result = Assert.Throws<InvalidOperationException>(() => parentAdapter
+            .GetRequiredService<ISetChildItemContent>()
+            .GetChildItemContentWriter(this.providerMock.Object, "child")!
+            .Write(new List<string>() { newcontent.ToString() }));
+    }
+
+    #endregion ISetChildItemContent
 }

@@ -4,13 +4,14 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<LangVersion>latest</LangVersion>
-	<VersionPrefix>0.2.0</VersionPrefix>
+	  <LangVersion>latest</LangVersion>
+	  <VersionPrefix>0.3.0</VersionPrefix>
+    <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-	<PackageReference Include="TreeStore.Core" Version="0.3.2" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+	  <PackageReference Include="TreeStore.Core" Version="0.4.1" />
   </ItemGroup>
 
   <ItemGroup>

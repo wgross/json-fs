@@ -83,11 +83,11 @@ namespace TreeStore.JsonFS.Test
 
             Assert.Equal(2, childItems.Length);
 
-            var psobject = childItems[0].GetItem(this.providerMock.Object);
+            var psobject = childItems[0].GetItem();
 
             Assert.Equal(1, psobject.Property<int>("value"));
 
-            psobject = childItems[1].GetItem(this.providerMock.Object);
+            psobject = childItems[1].GetItem();
 
             Assert.Equal(2, psobject.Property<int>("value"));
         }
@@ -114,11 +114,11 @@ namespace TreeStore.JsonFS.Test
 
             Assert.Equal(2, childItems.Length);
 
-            var psobject = childItems[0].GetItem(this.providerMock.Object);
+            var psobject = childItems[0].GetItem();
 
             Assert.Equal(1, psobject.Property<long>("value"));
 
-            psobject = childItems[1].GetItem(this.providerMock.Object);
+            psobject = childItems[1].GetItem();
 
             Assert.Equal(2, psobject.Property<long>("value"));
         }
@@ -153,10 +153,10 @@ namespace TreeStore.JsonFS.Test
             // ASSERT
             Assert.Equal(2, result.Length);
 
-            var pso = result.ElementAt(0).GetItem(this.providerMock.Object);
+            var pso = result.ElementAt(0).GetItem();
             Assert.Equal("0", pso.Property<string>("PSChildName"));
 
-            pso = result.ElementAt(1).GetItem(this.providerMock.Object);
+            pso = result.ElementAt(1).GetItem();
             Assert.Equal("1", pso.Property<string>("PSChildName"));
         }
 
@@ -292,7 +292,7 @@ namespace TreeStore.JsonFS.Test
 
             Assert.Equal(3, childItems.Length);
 
-            var childItem = childItems[2].GetItem(this.providerMock.Object);
+            var childItem = childItems[2].GetItem();
 
             Assert.Equal("text", childItem.Property<string>("property2"));
         }
@@ -409,7 +409,7 @@ namespace TreeStore.JsonFS.Test
 
             // ACT & ASSERT
             // write array item by item
-            using (var writer = adapter.GetRequiredService<ISetItemContent>().GetItemContentWriter(this.providerMock.Object))
+            using (var writer = adapter.GetRequiredService<ISetChildItemContent>().GetChildItemContentWriter(this.providerMock.Object, "childName"))
             {
                 writer!.Write(new List<string> { content[0].ToString() });
                 writer!.Write(new List<string> { content[1].ToString() });

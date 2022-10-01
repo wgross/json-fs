@@ -134,7 +134,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
-        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.True(psobject.PropertyIsNull("PSDrive"), "No PSDrive when using provider path");
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
         Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
@@ -485,7 +485,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
     #endregion Get-Content
 
-    #region Write-Content
+    #region Set-Content
 
     [Fact]
     public void Powershell_writes_JObject_content()
@@ -504,11 +504,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Set-Content")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Value", content.ToString())
+                .AddParameter("Path", @"test:\")
+                    .AddParameter("Value", content.ToString())
             .AddStatement()
-            .AddCommand("Get-Content")
-            .AddParameter("Path", @"test:\")
+                .AddCommand("Get-Content")
+                    .AddParameter("Path", @"test:\")
             .Invoke()
             .Single();
 
@@ -522,5 +522,38 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         });
     }
 
-    #endregion Write-Content
+    [Fact]
+    public void Powershell_copy_JObject_by_content()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject
+            {
+                ["value"] = new JValue("value")
+            },
+            ["value1"] = new JValue("text")
+        });
+
+        // ACT
+        // pipe the content of test:\child in test:\new-child
+        var result = this.PowerShell
+            .AddScript(@"Get-Content -Path test:\child | Set-Content -Path test:\new-child")
+            .AddStatement()
+                .AddCommand("Get-Content")
+                    .AddParameter("Path", @"test:\new-child")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        //Assert.Equal(content.ToString(), result);
+
+        this.AssertJsonFileContent(r =>
+        {
+            //Assert.Equal(content.ToString(), r.ToString());
+        });
+    }
+
+    #endregion Set-Content
 }
