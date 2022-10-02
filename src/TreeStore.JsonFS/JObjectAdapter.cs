@@ -54,7 +54,7 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     PSObject IGetItem.GetItem(ICmdletProvider provider)
     {
-        var pso = PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload)));
+        var pso = PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload), this.ValueProperties().Select(p => p.Name).ToArray()));
 
         foreach (var property in this.ValueProperties())
         {

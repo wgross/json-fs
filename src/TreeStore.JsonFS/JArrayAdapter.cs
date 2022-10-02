@@ -17,7 +17,7 @@ public sealed class JArrayAdapter : JAdapterBase,
 
     #region IGetItem
 
-    PSObject IGetItem.GetItem(ICmdletProvider provider) => PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload)));
+    PSObject IGetItem.GetItem(ICmdletProvider provider) => PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload), Array.Empty<string>()));
 
     #endregion IGetItem
 

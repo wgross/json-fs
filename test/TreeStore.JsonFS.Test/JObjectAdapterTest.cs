@@ -53,6 +53,7 @@ public class JObjectAdapterTest : IDisposable
         // ASSERT
         Assert.IsType<JsonFsItem>(result.BaseObject);
         Assert.Equal("", result.Property<string>("Name"));
+        Assert.Equal(new[] { "value", "valueArray", "emptyArray" }, result.Property<string[]>("PropertyNames"));
 
         // value properties are note properties in the PSObject
         Assert.Equal(1, result!.Property<long>("value"));

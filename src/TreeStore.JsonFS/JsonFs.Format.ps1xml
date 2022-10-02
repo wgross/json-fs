@@ -8,7 +8,13 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                <TableColumnHeader/>
+                    <TableColumnHeader>
+                        <Label>Name</Label>
+                        <Width>50</Width>
+                    </TableColumnHeader>
+					<TableColumnHeader>
+                        <Label>Property Names</Label>
+                    </TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -16,6 +22,9 @@
                             <TableColumnItem>
                                 <PropertyName>Name</PropertyName>
                             </TableColumnItem>
+							<TableColumnItem>
+								<PropertyName>PropertyNames</PropertyName>
+							</TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>
                 </TableRowEntries>

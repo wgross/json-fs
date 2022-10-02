@@ -55,9 +55,7 @@ namespace TreeStore.JsonFS.Test
             // ASSERT
             Assert.IsType<JsonFsItem>(result.BaseObject);
             Assert.Equal("", result.Property<string>("Name"));
-
-            // array node has no properties
-            Assert.Single(result.Properties);
+            Assert.Equal(Array.Empty<string>(), result.Property<string[]>("PropertyNames"));
         }
 
         [Fact]
@@ -74,9 +72,7 @@ namespace TreeStore.JsonFS.Test
             // ASSERT
             Assert.IsType<JsonFsItem>(result.BaseObject);
             Assert.Equal("0", result.Property<string>("Name"));
-
-            // array node has no properties
-            Assert.Single(result.Properties);
+            Assert.Equal(Array.Empty<string>(), result.Property<string[]>("PropertyNames"));
         }
 
         [Fact]
@@ -93,9 +89,7 @@ namespace TreeStore.JsonFS.Test
             // ASSERT
             Assert.IsType<JsonFsItem>(result.BaseObject);
             Assert.Equal("1", result.Property<string>("Name"));
-
-            // array node has no properties
-            Assert.Single(result.Properties);
+            Assert.Equal(Array.Empty<string>(), result.Property<string[]>("PropertyNames"));
         }
 
         #endregion IGetItem

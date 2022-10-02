@@ -13,14 +13,15 @@
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
     Description = 'Mount JSON files as PowerShell drives'
-    FormatsToProcess  = @('JsonFS.format.ps1xml')   
+    FormatsToProcess  = @('./JsonFS.Format.ps1xml')   
     PrivateData = @{
         PSData = @{
             ProjectUri = 'https://github.com/wgross/json-fs'
             Tags = @('PSEdition_Core','json','Provider')
             RelaseNodes = '
 0.2.0: Support for Set-ItemContent            
-0.3.0: Create new node with Set-ItemContent'
+0.3.0: Create new node with Set-ItemContent
+ - base object JsonFsItem having properties Name and PropertyNames'
         }
     }
 }
