@@ -13,7 +13,7 @@
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
     Description = 'Mount JSON files as PowerShell drives'
-    FormatsToProcess  = @('./JsonFS.Format.ps1xml')   
+    FormatsToProcess  = @('JsonFS.Format.ps1xml')
     PrivateData = @{
         PSData = @{
             ProjectUri = 'https://github.com/wgross/json-fs'

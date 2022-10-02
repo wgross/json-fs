@@ -51,11 +51,11 @@ public abstract class JAdapterBase : IServiceProvider
     {
         if (type.IsValueType)
             return true;
-        if (type.IsArray)
+        else if (type.IsArray)
             return IsValueType(type.GetElementType()!);
-        if (type == typeof(string))
+        else if (type == typeof(string))
             return true;
-        return false;
+        else return false;
     }
 
     protected static void IfValueSemantic(object? value, Action<JToken> then)
@@ -64,7 +64,12 @@ public abstract class JAdapterBase : IServiceProvider
             then(JValue.CreateNull());
         else if (value is string str)
             then(new JValue(value));
+        // arrays are value arrays is their element type is a type with vale semantic
         else if (value.GetType().IsArray && IsValueType(value.GetType()))
+            then(new JArray(value));
+        // object array need further inspection. PS gives these array even if their items are ints.
+        // look at the first item for classification
+        else if (value is Array array && array.Length > 0 && IsValueType(array.GetValue(0)!.GetType()))
             then(new JArray(value));
         else if (value.GetType().IsClass)
             return;

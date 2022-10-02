@@ -2097,6 +2097,40 @@ public class JObjectAdapterTest : IDisposable
     }
 
     [Fact]
+    public void NewItemProperty_creates_array_property()
+    {
+        // ARRANGE
+        var root = new JObject();
+        var rootAdapter = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, new[] { 1, 2, 3 });
+
+        // ASSERT
+        Assert.True(root.TryGetValue("data1", out var value));
+        Assert.Equal(new JArray(new JValue(1), new JValue(2), new JValue(3)), value);
+    }
+
+    [Fact]
+    public void NewItemProperty_converts_object_array_property()
+    {
+        // ARRANGE
+        var root = new JObject();
+        var rootAdapter = new JObjectAdapter(root);
+
+        this.ArrangeBeginModification();
+
+        // ACT
+        rootAdapter.GetRequiredService<INewItemProperty>().NewItemProperty(this.providerMock.Object, "data1", null, new object[] { (object)1, (object)2, (object)3 });
+
+        // ASSERT
+        Assert.True(root.TryGetValue("data1", out var value));
+        Assert.Equal(new JArray(new JValue(1), new JValue(2), new JValue(3)), value);
+    }
+
+    [Fact]
     public void NewItemProperty_creating_child_as_property_fails()
     {
         // ARRANGE

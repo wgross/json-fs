@@ -47,6 +47,9 @@ public class PowerShellTestBase : IDisposable
     {
         this.PowerShell.Commands.Clear();
         this.PowerShell
+            .AddCommand("Set-ExecutionPolicy")
+            .AddParameter("ExecutionPolicy","Unrestricted")
+            .AddStatement()
             .AddCommand("Import-Module")
             .AddArgument("./JsonFS.psd1")
             .AddStatement()

@@ -117,7 +117,7 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     #region New-ItemProperty -Path -Name -Value
 
     [Fact]
-    public void Powershell_creates_item_property()
+    public void Powershell_creates_item_property_from_scalar()
     {
         // ARRANGE
         var child = new JObject();
@@ -142,6 +142,62 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // property was created with value
         Assert.False(this.PowerShell.HadErrors);
         Assert.Equal(1, result.Property<int>("newdata"));
+    }
+
+    [Fact]
+    public void Powershell_creates_item_property_from_value_array()
+    {
+        // ARRANGE
+        var child = new JObject();
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["data"] = 1,
+            ["child"] = child
+        });
+
+        // ACT
+        var result = this.PowerShell.AddCommand("New-ItemProperty")
+            .AddParameter("Path", @"test:\")
+            .AddParameter("Name", "newdata")
+            .AddParameter("Value", new int[] { 1, 2, 3 })
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // property was created with value
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(new object[] { 1, 2, 3 }, result.Property<object[]>("newdata"));
+    }
+
+    [Fact]
+    public void Powershell_creates_item_property_from_PS_value_array()
+    {
+        // ARRANGE
+        var child = new JObject();
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["data"] = 1,
+            ["child"] = child
+        });
+
+        // ACT
+        var result = this.PowerShell.AddCommand("New-ItemProperty")
+            .AddParameter("Path", @"test:\")
+            .AddParameter("Name", "newdata")
+            .AddParameter("Value", new object[] { 1, 2, 3 })
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // property was created with value
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(new object[] { 1, 2, 3 }, result.Property<object[]>("newdata"));
     }
 
     #endregion New-ItemProperty -Path -Name -Value
