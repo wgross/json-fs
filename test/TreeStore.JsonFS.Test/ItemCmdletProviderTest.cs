@@ -3,6 +3,51 @@
 [Collection(nameof(PowerShell))]
 public class ItemCmdletProviderTest : PowerShellTestBase
 {
+    #region drive:\
+
+    [Fact]
+    public void PowerShell_creates_set_location_func_with_drive_name()
+    {
+        // ARRANGE
+        this.ArrangeFileSystem(this.JsonFilePath);
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Get-Content")
+            .AddParameter("Path", @"Function:\test:")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal("Set-Location -Path $MyInvocation.MyCommand.Name", result);
+    }
+
+    [Fact]
+    public void PowerShell_removes_set_location_func_with_drive_name()
+    {
+        // ARRANGE
+        this.ArrangeFileSystem(this.JsonFilePath);
+
+        // ACT
+        this.PowerShell.AddCommand("Remove-PSDrive")
+            .AddParameter("Name", "test")
+            .Invoke();
+
+        // ASSERT
+        this.PowerShell.Commands.Clear();
+
+        var result = this.PowerShell.AddCommand("Test-Path")
+            .AddParameter("Path", @"Function:\test:")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal("False", result.ToString());
+    }
+
+    #endregion drive:\
+
     #region Get-Item -Path
 
     [Fact]

@@ -51,12 +51,12 @@ All other item property commandlets are applicable too.
   - New-Item: like Set-Item, only value properties are created
 - 0.3.0:
   - Support for Get-/Set-/Clear-Content cmdlets using JSON text added
-  - fs item have and underlying type 'JsonFsItem' having a property 'Name'
-  - defualt table type for 'JsonFsItem'
-
-## Features to come
-
-- Set-/Get-Content support
+  - fs items have base object of type 'JsonFsItem' 
+    - having a property 'Name'
+    - having a property 'PropertyName' with all value property names
+  - format for fs items
+    - table format with Columns 'Name' and 'PropertyNames'.
+  - improvements with value arrays: value array are converted from `object[]` provider by powershell from `@(..)`
 
 ## Building the module
 

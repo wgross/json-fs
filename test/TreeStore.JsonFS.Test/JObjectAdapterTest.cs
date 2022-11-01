@@ -169,7 +169,7 @@ public class JObjectAdapterTest : IDisposable
         var newData = new PSObject();
         newData.Properties.Add(new PSNoteProperty("object", new PSObject()));
         newData.Properties.Add(new PSNoteProperty("objectArray", new object[] { new PSObject(), new PSObject() }));
-        newData.Properties.Add(new PSNoteProperty("value", 1l));
+        newData.Properties.Add(new PSNoteProperty("value", 1L));
         newData.Properties.Add(new PSNoteProperty("valueArray", new[] { 1, 2 }));
 
         // ACT
@@ -597,7 +597,7 @@ public class JObjectAdapterTest : IDisposable
         var value = new JObject()
         {
             ["value"] = new JValue(1),
-            ["valueArray"] = new JArray(1l, 2l),
+            ["valueArray"] = new JArray(1L, 2L),
             ["object"] = new JObject(),
             ["objectArray"] = new JArray(new JObject(), new JObject()),
         };
@@ -638,7 +638,7 @@ public class JObjectAdapterTest : IDisposable
         var value = new PSObject();
         value.Properties.Add(new PSNoteProperty("property2", "text"));
         value.Properties.Add(new PSNoteProperty("value", 1));
-        value.Properties.Add(new PSNoteProperty("valueArray", new[] { 1l, 2l }));
+        value.Properties.Add(new PSNoteProperty("valueArray", new[] { 1L, 2L }));
         value.Properties.Add(new PSNoteProperty("objectArray", new[] { new PSObject(), new PSObject() }));
 
         var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
@@ -672,7 +672,7 @@ public class JObjectAdapterTest : IDisposable
         var value = new JObject()
         {
             ["value"] = new JValue(1),
-            ["valueArray"] = new JArray(1l, 2l),
+            ["valueArray"] = new JArray(1L, 2L),
             ["object"] = new JObject(),
             ["objectArray"] = new JArray(new JObject(), new JObject()),
         };

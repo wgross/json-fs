@@ -1,7 +1,6 @@
-﻿namespace TreeStore.JsonFS
+﻿namespace TreeStore.JsonFS;
+
+public interface IJsonFsRootNodeModification
 {
-    public interface IJsonFsRootNodeModification
-    {
-        public IDisposable BeginModify();
-    }
+    public IDisposable BeginModify();
 }

@@ -1,7 +1,6 @@
-﻿namespace TreeStore.JsonFS
+﻿namespace TreeStore.JsonFS;
+
+public sealed class NewChildItemParameters
 {
-    public sealed class NewChildItemParameters
-    {
-        public SwitchParameter Insert { get; set; }
-    }
+    public SwitchParameter Insert { get; set; }
 }

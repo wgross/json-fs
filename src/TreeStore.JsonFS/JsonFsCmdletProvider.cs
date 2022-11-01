@@ -1,6 +1,4 @@
-﻿using System.Management.Automation.Language;
-
-namespace TreeStore.JsonFS;
+﻿namespace TreeStore.JsonFS;
 
 [CmdletProvider(JsonFsCmdletProvider.Id, ProviderCapabilities.None)]
 public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsRootNodeModification
@@ -18,12 +16,23 @@ public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsR
         if (jsonFilePath is null)
             throw new PSArgumentException($"Path: '{drive.Root}' couldn't be resolved");
 
+        // create a function to set the current location to the created drive (<name:> { Set-Location -Path $MyInvocation.MyCommand.Name }
+        this.InvokeCommand.InvokeScript($"Set-Item -Path \"Function:\\global:{drive.Name}`:\" -Value ([scriptblock]::Create(\"Set-Location -Path `$MyInvocation.MyCommand.Name\"))");
+
         return new JsonFsDriveInfo(JsonFsRootProvider.FromFile(jsonFilePath), new PSDriveInfo(
            name: drive.Name,
            provider: drive.Provider,
            root: $@"{drive.Name}:\",
            description: drive.Description,
            credential: drive.Credential));
+    }
+
+    protected override PSDriveInfo RemoveDrive(PSDriveInfo drive)
+    {
+        // remove the set location function from this session
+        this.InvokeCommand.InvokeScript($"Remove-Item -Path \"Function:\\{drive.Name}`:\"");
+
+        return drive;
     }
 
     IDisposable IJsonFsRootNodeModification.BeginModify() => this.PSDriveInfo switch
@@ -50,8 +59,6 @@ public sealed class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsR
     //    if(!boundArguments.ContainsKey("Path"))
     //        return Array.Empty<CompletionResult>();
 
-        
-       
     //    return Array.Empty<CompletionResult>();
 
     //}
