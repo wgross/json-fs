@@ -9,7 +9,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     public void PowerShell_creates_set_location_func_with_drive_name()
     {
         // ARRANGE
-        this.ArrangeFileSystem(this.JsonFilePath);
+        this.ArrangeFileSystem(new JObject());
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Content")
@@ -26,7 +26,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     public void PowerShell_removes_set_location_func_with_drive_name()
     {
         // ARRANGE
-        this.ArrangeFileSystem(this.JsonFilePath);
+        this.ArrangeFileSystem(new JObject());
 
         // ACT
         this.PowerShell.AddCommand("Remove-PSDrive")
@@ -54,7 +54,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     public void Powershell_create_file_and_reads_root_node()
     {
         // ARRANGE
-        this.ArrangeFileSystem(this.JsonFilePath);
+        this.ArrangeFileSystem(new JObject());
 
         // ACT
         var result = this.PowerShell
@@ -83,7 +83,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     {
         // ARRANGE
         File.WriteAllText(this.JsonFilePath, "");
-        this.ArrangeFileSystem(this.JsonFilePath);
+        this.ArrangeFileSystem(new JObject());
 
         // ACT
         var result = this.PowerShell
@@ -262,7 +262,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     public void Powershell_resolves_root_node_path()
     {
         // ARRANGE
-        this.ArrangeFileSystem(this.JsonFilePath);
+        this.ArrangeFileSystem(new JObject());
 
         // ACT
         var result = this.PowerShell.AddCommand("Resolve-Path")
@@ -312,7 +312,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         this.AssertJsonFileContent(r =>
         {
-            Assert.Equal(newValue["data"], ((JObject)r["child"]!)["data"]);
+            Assert.Equal(newValue["data"], r.ChildObject("child")!["data"]);
+            Assert.False(r.ChildObject("child").ContainsKey("child"));
         });
     }
 
@@ -356,7 +357,8 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         this.AssertJsonFileContent(r =>
         {
-            Assert.Equal(newValue["data"], ((JObject)r["child"]!)["data"]);
+            Assert.Equal(newValue["data"], r.ChildObject("child")!["data"]);
+            Assert.False(r.ChildObject("child").ContainsKey("child"));
         });
     }
 

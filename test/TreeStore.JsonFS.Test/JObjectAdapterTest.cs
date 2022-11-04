@@ -581,7 +581,7 @@ public class JObjectAdapterTest : IDisposable
     }
 
     [Fact]
-    public void NewChildItem_creates_JObject_value_properties_from_JObject()
+    public void NewChildItem_creates_JObject_from_JObject()
     {
         // ARRANGE
         this.ArrangeBeginModification();
@@ -611,13 +611,13 @@ public class JObjectAdapterTest : IDisposable
         // a JObject was added to the parent node
         Assert.True(underlying.TryGetValue("container1", out var added));
 
-        // array was added, value overrides the old value
+        // array was added, values were added
         var psobject = result.NodeServices!.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
 
         Assert.Equal(1, psobject!.Property<long>("value"));
         Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("valueArray"));
 
-        // object and objectArray weren't added, the original children are still there
+        // child object and child array were added
         Assert.Empty(result.NodeServices!.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object));
     }
 
@@ -653,6 +653,9 @@ public class JObjectAdapterTest : IDisposable
 
         // the property was kept as well.
         Assert.Equal("text", added["property2"]!.Value<string>());
+
+        // child object and child array were added
+        Assert.Empty(result.NodeServices!.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object));
     }
 
     [Fact]
@@ -692,7 +695,7 @@ public class JObjectAdapterTest : IDisposable
         Assert.Equal(1, psobject!.Property<long>("value"));
         Assert.Equal(new object[] { (long)1, (long)2 }, psobject!.Property<object[]>("valueArray"));
 
-        // object and objectArray weren't added, the original children are still there
+        // child object and child array were added
         Assert.Empty(result.NodeServices!.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object));
     }
 

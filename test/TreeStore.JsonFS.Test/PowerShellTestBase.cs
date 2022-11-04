@@ -26,16 +26,22 @@ public class PowerShellTestBase : IDisposable
 
     public string JsonFilePath = $"./{Guid.NewGuid()}.json";
 
-    public void AssertJsonFileContent(Action<JObject> assertion) => assertion(JObject.Parse(File.ReadAllText(this.JsonFilePath)));
+    public void AssertJsonFileContent(Action<JObject> assertion) => this.AssertJsonFileContent(this.JsonFilePath, assertion);
+
+    public void AssertJsonFileContent(string filename, Action<JObject> assertion) => assertion(JObject.Parse(File.ReadAllText(filename)));
 
     /// <summary>
     /// Arranges a dictionary file system using the given data as root nodes payload.
     /// </summary>
-    public virtual JObject ArrangeFileSystem(JObject payload)
-    {
-        File.WriteAllText(this.JsonFilePath, payload.ToString());
+    public JObject ArrangeFileSystem(JObject payload) => this.ArrangeFileSystem("test", this.JsonFilePath, payload);
 
-        this.ArrangeFileSystem(Path.GetFullPath(this.JsonFilePath));
+    public JObject ArrangeFileSystem(string name, string jsonFilePath, JObject payload)
+    {
+        var fullPath = Path.GetFullPath(jsonFilePath);
+
+        File.WriteAllText(fullPath, payload.ToString());
+
+        this.ArrangeFileSystem(name, fullPath);
 
         return payload;
     }
@@ -43,19 +49,19 @@ public class PowerShellTestBase : IDisposable
     /// <summary>
     /// Loads the module from the tests bin directory and creates a drive 'test'.
     /// </summary>
-    protected void ArrangeFileSystem(string path)
+    protected void ArrangeFileSystem(string name, string path)
     {
         this.PowerShell.Commands.Clear();
         this.PowerShell
             .AddCommand("Set-ExecutionPolicy")
-            .AddParameter("ExecutionPolicy","Unrestricted")
+            .AddParameter("ExecutionPolicy", "Unrestricted")
             .AddStatement()
             .AddCommand("Import-Module")
             .AddArgument("./JsonFS.psd1")
             .AddStatement()
             .AddCommand("New-PSDrive")
             .AddParameter("PSProvider", "JsonFS")
-            .AddParameter("Name", "test")
+            .AddParameter("Name", name)
             .AddParameter("Root", $"{path}")
             .Invoke();
         this.PowerShell.Commands.Clear();

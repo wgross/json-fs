@@ -17,9 +17,12 @@ Afterwards you may navigate to the drive and use the common item commandlets:
 PS> cd json:\
 ```
 
-A json drive only knows container nodes (directories). All JSON objects are shown as containers, all properties having a non-scalar value type are shown as child containers. All properties having a scalar value type (int, string etc) are show as properties of the file system item.
+A json drive only knows container nodes (directories). 
+All JSON objects are shown as containers, all JSON properties having a non-scalar value type are shown as child containers. 
+All JSON properties having a scalar value type (number, string etc) are shown as PowerShell properties of the file system item.
 
-For arrays a similar semantic is applied: if the first value of an array is a scalar value the whole array is shows as a property. If the first item of the array is an object type the array is show as a child container having children with names `"0","1",..`.
+For arrays a similar semantic is applied: if the first value of an array is a scalar value the whole array is shows as property value. 
+If the first item of the array is an object type the array is show as a collection of child containers having names `"0","1",..`.
 
 A JSON object like this:
 
@@ -42,6 +45,14 @@ A JSON object like this:
 
 Properties at items can be created using `New-ItemProperty` or `Set-ItemProperty -Force`.
 All other item property commandlets are applicable too.
+
+### Copy JSON data between two instances of the JsonFS provider
+
+It is possble to copy a Container (recursively or not) to another JsonFS drive:
+
+```powershell
+PS> Copy-Item -Path json-1:\parent\child -Destination json-2:\another\container -Recurse
+```
 
 ## Release Notes
 

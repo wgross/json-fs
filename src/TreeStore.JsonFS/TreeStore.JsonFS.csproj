@@ -10,7 +10,12 @@
 
   <ItemGroup>
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-	  <PackageReference Include="TreeStore.Core" Version="0.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Either use nuget package or submodule -->
+    <!--<PackageReference Include="TreeStore.Core" Version="0.4.1" />-->
+    <ProjectReference Include="..\..\submodules\TreeStore.Core\src\TreeStore.Core\TreeStore.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
