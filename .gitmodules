@@ -1,0 +1,3 @@
+[submodule "submodules/TreeStore.Core"]
+	path = submodules/TreeStore.Core
+	url = https://github.com/wgross/TreeStore.Core.git
