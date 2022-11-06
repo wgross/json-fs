@@ -9,7 +9,7 @@
 
             if (string.IsNullOrEmpty(destinationSplitted.DriveName) || this.PSDriveInfo.Name.Equals(destinationSplitted.DriveName, StringComparison.OrdinalIgnoreCase))
             {
-                // yes the copy operations remian within the file system: Just call the base provider
+                // Yes, the copy operations remains within the source file system: just call the base provider
                 base.CopyItem(path, destination, recurse);
             }
             else

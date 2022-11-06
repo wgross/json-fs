@@ -17,7 +17,15 @@ Afterwards you may navigate to the drive and use the common item commandlets:
 PS> cd json:\
 ```
 
-A json drive only knows container nodes (directories). 
+The provider also creates a global function for setting the current location to the JsonFS drive
+
+```powershell
+PS> json: <Return>
+```
+
+will set the shell location to the current location at the JsonFS drive `json`.
+
+A JsonFS drive only knows container nodes (directories). 
 All JSON objects are shown as containers, all JSON properties having a non-scalar value type are shown as child containers. 
 All JSON properties having a scalar value type (number, string etc) are shown as PowerShell properties of the file system item.
 

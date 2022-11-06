@@ -42,6 +42,61 @@ public class NavigationCmdletProvider : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_moves_child_item_to_second_jsonfs()
+    {
+        // ARRANGE
+        var secondfile = $"{Guid.NewGuid()}.json";
+
+        var childA_1 = new JObject()
+        {
+            ["property"] = new JValue(1),
+            ["grandchild"] = new JObject()
+            {
+                ["property2"] = new JValue(2)
+            }
+        };
+
+        var rootA = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = childA_1,
+            ["child2"] = new JObject()
+        });
+
+        var rootB = this.ArrangeFileSystem("test-2", secondfile, new JObject
+        {
+        });
+
+        // ACT
+        // copy child1 under child2
+        var _ = this.PowerShell.AddCommand("Move-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Destination", @"test-2:\")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        this.AssertJsonFileContent(r =>
+        {
+            // child1 was remove from first file system
+            Assert.False(r.TryGetJObject("child1", out var _));
+        });
+
+        this.AssertJsonFileContent(secondfile, r =>
+        {
+            // new node has been created
+            Assert.NotNull(r.ChildObject("child1"));
+
+            // copy is shallow and contains the property but not the child node
+            Assert.True(r.ChildObject("child1").TryGetValue("property", out var _));
+            Assert.True(r.ChildObject("child1").TryGetValue("grandchild", out var _));
+            Assert.True(r.ChildObject("child1").ChildObject("grandchild").TryGetValue("property2", out var property2));
+            Assert.Equal(2, property2!.Value<int>());
+        });
+    }
+
+    [Fact]
     public void PowerShell_moves_node_to_child_with_new_name()
     {
         // ARRANGE
@@ -76,6 +131,61 @@ public class NavigationCmdletProvider : PowerShellTestBase
             Assert.True(r.TryGetJObject("child2", out var c2));
             Assert.True(c2!.TryGetJObject("new-name", out var nn));
             Assert.Equal("text", nn!.Value<string>("property"));
+        });
+    }
+
+    [Fact]
+    public void Powershell_moves_child_item_with_new_name_to_second_jsonfs()
+    {
+        // ARRANGE
+        var secondfile = $"{Guid.NewGuid()}.json";
+
+        var childA_1 = new JObject()
+        {
+            ["property"] = new JValue(1),
+            ["grandchild"] = new JObject()
+            {
+                ["property2"] = new JValue(2)
+            }
+        };
+
+        var rootA = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = childA_1,
+            ["child2"] = new JObject()
+        });
+
+        var rootB = this.ArrangeFileSystem("test-2", secondfile, new JObject
+        {
+        });
+
+        // ACT
+        // copy child1 under child2
+        var _ = this.PowerShell.AddCommand("Move-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Destination", @"test-2:\new")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        this.AssertJsonFileContent(r =>
+        {
+            // child1 was remove from first file system
+            Assert.False(r.TryGetJObject("child1", out var _));
+        });
+
+        this.AssertJsonFileContent(secondfile, r =>
+        {
+            // new node has been created
+            Assert.NotNull(r.ChildObject("new"));
+
+            // copy is shallow and contains the property but not the child node
+            Assert.True(r.ChildObject("new").TryGetValue("property", out var _));
+            Assert.True(r.ChildObject("new").TryGetValue("grandchild", out var _));
+            Assert.True(r.ChildObject("new").ChildObject("grandchild").TryGetValue("property2", out var property2));
+            Assert.Equal(2, property2!.Value<int>());
         });
     }
 

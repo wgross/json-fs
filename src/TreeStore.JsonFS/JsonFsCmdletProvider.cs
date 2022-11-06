@@ -1,7 +1,7 @@
 ﻿namespace TreeStore.JsonFS;
 
 [CmdletProvider(JsonFsCmdletProvider.Id, ProviderCapabilities.None)]
-public sealed partial class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsRootNodeModification
+public partial class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFsRootNodeModification
 {
     public const string Id = "JsonFS";
 
