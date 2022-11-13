@@ -52,7 +52,18 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     #region IGetItem
 
+    object? IGetItem.GetItemParameters() => new JsonFsGetItemParameters();
+
     PSObject IGetItem.GetItem(ICmdletProvider provider)
+    {
+        return provider.DynamicParameters is JsonFsGetItemParameters dynamicParameters
+            ? dynamicParameters.AsHashtable.IsPresent
+                ? this.ItemAsHashtable(provider)
+                : this.ItemAsJsonFsItem(provider)
+            : this.ItemAsJsonFsItem(provider);
+    }
+
+    private PSObject ItemAsJsonFsItem(ICmdletProvider provider)
     {
         var pso = PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload), this.ValueProperties().Select(p => p.Name).ToArray()));
 
@@ -70,6 +81,25 @@ public sealed class JObjectAdapter : JAdapterBase,
             }
         }
         return pso;
+    }
+
+    private PSObject ItemAsHashtable(ICmdletProvider provider)
+    {
+        return PSObject.AsPSObject(this.ValueProperties()
+            .Aggregate(new Hashtable(), (hs, property) =>
+            {
+                switch (property.Value)
+                {
+                    case JValue value:
+                        hs[property.Name] = value.Value;
+                        break;
+
+                    case JArray array:
+                        hs[property.Name] = array.Children().OfType<JValue>().Select(v => v.Value).ToArray();
+                        break;
+                }
+                return hs;
+            }));
     }
 
     #endregion IGetItem
@@ -359,7 +389,7 @@ public sealed class JObjectAdapter : JAdapterBase,
         };
     }
 
-    CopyChildItemResult CopyObjectToThisNodeRecursively(ICmdletProvider provider, ProviderNode nodeToCopy, JObjectAdapter nodeToCopyAdapter, string[] destination)
+    private CopyChildItemResult CopyObjectToThisNodeRecursively(ICmdletProvider provider, ProviderNode nodeToCopy, JObjectAdapter nodeToCopyAdapter, string[] destination)
     {
         using var handle = this.BeginModify(provider);
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Collections;
 using System.Collections.Generic;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Nodes;
@@ -47,6 +48,10 @@ public class JObjectAdapterTest : IDisposable
             ["object"] = new JObject(),
         });
 
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
+
         // ACT
         var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
 
@@ -68,6 +73,41 @@ public class JObjectAdapterTest : IDisposable
     }
 
     [Fact]
+    public void GetItem_creates_Hashtable_of_JObject()
+    {
+        // ARRANGE
+        var node = new JObjectAdapter(new JObject()
+        {
+            ["value"] = new JValue(1),
+            ["valueArray"] = new JArray(new JValue(1), new JValue(2)),
+            ["emptyArray"] = new JArray(),
+            ["objectArray"] = new JArray(new JObject(), new JObject()),
+            ["object"] = new JObject(),
+        });
+
+        // ACT
+        var parameters = (JsonFsGetItemParameters)((IGetItem)node).GetItemParameters();
+
+        parameters!.AsHashtable = new SwitchParameter(isPresent: true);
+
+        this.providerMock
+            .Setup(p => p.DynamicParameters)
+            .Returns(parameters);
+
+        var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
+
+        // ASSERT
+        Assert.IsType<Hashtable>(result.BaseObject);
+
+        var hashtable = (Hashtable)result.BaseObject;
+
+        Assert.Equal(new[] { "emptyArray", "value", "valueArray" }, hashtable.Keys.Cast<string>().OrderBy(_ => _));
+        Assert.Empty((object[])hashtable["emptyArray"]!);
+        Assert.Equal(new[] { 1L, 2L }, hashtable["valueArray"]!);
+        Assert.Equal(1L, hashtable["value"]!);
+    }
+
+    [Fact]
     public void GetItem_creates_PSObject_of_child_JObject()
     {
         // ARRANGE
@@ -86,6 +126,10 @@ public class JObjectAdapterTest : IDisposable
         };
 
         var node = new JObjectAdapter(child);
+
+        this.providerMock
+            .Setup(p => p.DynamicParameters)
+            .Returns(new JsonFsGetItemParameters());
 
         // ACT
         var result = ((IGetItem)node).GetItem(provider: this.providerMock.Object);
@@ -132,6 +176,10 @@ public class JObjectAdapterTest : IDisposable
             ["valueArray"] = new JArray(1, 2)
         };
 
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
+
         // ACT
         // override node with new data
         node.GetRequiredService<ISetItem>().SetItem(this.providerMock.Object, newData);
@@ -171,6 +219,10 @@ public class JObjectAdapterTest : IDisposable
         newData.Properties.Add(new PSNoteProperty("objectArray", new object[] { new PSObject(), new PSObject() }));
         newData.Properties.Add(new PSNoteProperty("value", 1L));
         newData.Properties.Add(new PSNoteProperty("valueArray", new[] { 1, 2 }));
+
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
 
         // ACT
         // override node with new data
@@ -213,6 +265,10 @@ public class JObjectAdapterTest : IDisposable
             ["valueArray"] = new JArray(1, 2),
             ["objectArray"] = new JObject(),
         };
+
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
 
         // ACT
         // override node with new data
@@ -290,6 +346,10 @@ public class JObjectAdapterTest : IDisposable
         };
 
         var node = new JObjectAdapter(jnode);
+
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
 
         // ACT
         node.GetRequiredService<IClearItem>().ClearItem(this.providerMock.Object);
@@ -376,6 +436,10 @@ public class JObjectAdapterTest : IDisposable
                 ["valueArray"] = new JArray(new JValue(3), new JValue(4))
             }
         });
+
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
 
         // ACT
         var result = ((IGetChildItem)node).GetChildItems(this.providerMock.Object).ToArray();
@@ -593,6 +657,10 @@ public class JObjectAdapterTest : IDisposable
 
         var node = new JObjectAdapter(underlying);
 
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
+
         // ACT
         var value = new JObject()
         {
@@ -670,6 +738,10 @@ public class JObjectAdapterTest : IDisposable
         };
 
         var node = new JObjectAdapter(underlying);
+
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
 
         // ACT
         var value = new JObject()
