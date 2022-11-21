@@ -107,6 +107,35 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_setting_item_property_fails()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["data"] = 1
+        });
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Set-ItemProperty")
+            .AddParameter("Path", @"test:\")
+            .AddParameter("Name", "missing")
+            .AddParameter("Value", "text")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // value has changed
+        Assert.True(this.PowerShell.HadErrors);
+
+        var error = this.PowerShell.Streams.Error.Single();
+
+        Assert.Equal("Can't set property(name='missing'): it doesn't exist", error.Exception.Message);
+    }
+
+    [Fact]
     public void Powershell_creates_item_property_on_Force()
     {
         // ARRANGE

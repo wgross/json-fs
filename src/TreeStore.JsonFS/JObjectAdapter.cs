@@ -500,6 +500,10 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     void ISetItemProperty.SetItemProperty(ICmdletProvider provider, PSObject properties)
     {
+        foreach (var p in properties.Properties)
+            if (this.ValueProperty(p.Name) is null)
+                throw new InvalidOperationException($"Can't set property(name='{p.Name}'): it doesn't exist");
+
         using var handle = this.BeginModify(provider);
 
         foreach (var p in properties.Properties)

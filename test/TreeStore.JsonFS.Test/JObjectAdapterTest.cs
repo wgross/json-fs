@@ -1727,7 +1727,7 @@ public class JObjectAdapterTest : IDisposable
     }
 
     [Fact]
-    public void SetItemProperty_ignores_unknown_property()
+    public void SetItemProperty_ignores_fails_on_unknown_property()
     {
         // ARRANGE
         var root = new JObject
@@ -1735,22 +1735,15 @@ public class JObjectAdapterTest : IDisposable
             ["data1"] = "text",
         };
         var rootNode = new JObjectAdapter(root);
-        this.providerMock
-            .Setup(p => p.Force)
-            .Returns(false);
-
-        this.ArrangeBeginModification();
 
         // ACT
-        rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
+        var result = Assert.Throws<InvalidOperationException>(() => rootNode.GetRequiredService<ISetItemProperty>().SetItemProperty(this.providerMock.Object, new PSObject(new
         {
             unknown = "changed",
-        }));
+        })));
 
         // ASSERT
-        Assert.True(root.TryGetValue("data1", out var v1));
-        Assert.Equal("text", v1);
-        Assert.False(root.TryGetValue("unknown", out var _));
+        Assert.Equal("Can't set property(name='unknown'): it doesn't exist", result.Message);
     }
 
     [Fact]
