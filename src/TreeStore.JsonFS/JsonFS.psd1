@@ -18,7 +18,9 @@ v0.4.0:
 - adds set-location function from drive name
 v0.5.0:
 - read an item as an hashtable for easier use with splatting
-- Set-ItemProperty raise exception id property is unkwoen and -Force is not given
+- Set-ItemProperty raise exception if property is unkwoen and -Force is not given
+- New-Item with hash table value `New-Item -Value @ { key = "value" }`
+- Set-Item with hash table value `Set-Item -Value @ { key = "value" }`
 '
         }
     }

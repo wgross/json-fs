@@ -104,8 +104,13 @@ Also moving is implemented between to JSON filesystems
     - table format with Columns 'Name' and 'PropertyNames'.
   - improvements with value arrays: value array are converted from `object[]` provider by powershell from `@(..)`
 - 0.4.0:
+    - create global function `<drive name>:` to change location to newly created JsonFS drive
+- 0.5.0:
   - Support for splatting with `Get-Item -AsHashtable`
-    
+  - Set-ItemProperty raise exception if property is unkwoen and -Force is not given
+  - New-Item with hash table value `New-Item -Value @ { key = "value" }`
+  - Set-Item with hash table value `Set-Item -Value @ { key = "value" }`
+  
 ## Building the module
 
 To build the module just publish the project:

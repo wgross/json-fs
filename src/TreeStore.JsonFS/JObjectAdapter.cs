@@ -122,6 +122,10 @@ public sealed class JObjectAdapter : JAdapterBase,
                 this.SetItemFromPSObject(provider, psobject);
                 break;
 
+            case Hashtable htable:
+                this.SetItemFromHashtable(provider, htable);
+                break;
+
             default:
                 break;
         }
@@ -135,6 +139,17 @@ public sealed class JObjectAdapter : JAdapterBase,
 
         foreach (var p in psobject.Properties)
             IfValueSemantic(p.Value, then: jt => this.payload[p.Name] = jt);
+    }
+
+    private void SetItemFromHashtable(ICmdletProvider provider, Hashtable hashTable)
+    {
+        using var handle = this.BeginModify(provider);
+
+        this.RemoveValueProperies();
+
+        foreach (var kv in hashTable)
+            if (kv is DictionaryEntry de)
+                IfValueSemantic(de.Value, then: jt => this.payload[de.Key] = jt);
     }
 
     private void SetItemFromJObject(ICmdletProvider provider, JObject jobject)
@@ -235,12 +250,30 @@ public sealed class JObjectAdapter : JAdapterBase,
 
             PSObject pso => this.NewChildItemFromPSObject(provider, childName, itemTypeName, pso),
 
+            Hashtable htable => this.NewChildItemFromHashTable(provider, childName, itemTypeName, htable),
+
             string json => this.NewChildItemFromJson(provider, childName, itemTypeName, json),
 
             null => this.NewChildItemEmpty(provider, childName, itemTypeName),
 
             _ => new(Created: false, Name: childName, null)
         };
+    }
+
+    private NewChildItemResult NewChildItemFromHashTable(ICmdletProvider provider, string childName, string? itemTypeName, Hashtable newItemValue)
+    {
+        ArgumentNullException.ThrowIfNull(childName, nameof(childName));
+
+        JObject childObject = new();
+        JObjectAdapter jobjectAdapter = new(childObject);
+
+        using var handle = this.BeginModify(provider);
+
+        jobjectAdapter.SetItemFromHashtable(provider, newItemValue);
+
+        this.payload[childName] = childObject;
+
+        return new(Created: true, Name: childName, NodeServices: jobjectAdapter);
     }
 
     private NewChildItemResult NewChildItemFromJson(ICmdletProvider provider, string childName, string? itemTypeName, string json)
@@ -501,8 +534,19 @@ public sealed class JObjectAdapter : JAdapterBase,
     void ISetItemProperty.SetItemProperty(ICmdletProvider provider, PSObject properties)
     {
         foreach (var p in properties.Properties)
-            if (this.ValueProperty(p.Name) is null)
-                throw new InvalidOperationException($"Can't set property(name='{p.Name}'): it doesn't exist");
+        {
+            // check fo all value properties if the< alread exist.
+            // if not throw an error if the creation isn't forced.
+            IfValueSemantic(p.Value, then: _ =>
+            {
+                if (this.ChildProperty(p.Name) is not null)
+                    return; // the propert is already a child property: ignore
+
+                if (this.ValueProperty(p.Name) is null)
+                    if (!provider.Force)
+                        throw new InvalidOperationException($"Can't set property(name='{p.Name}'): it doesn't exist");
+            });
+        }
 
         using var handle = this.BeginModify(provider);
 
@@ -512,6 +556,10 @@ public sealed class JObjectAdapter : JAdapterBase,
             if (valueProperty is not null)
             {
                 IfValueSemantic(p.Value, then: jt => valueProperty.Value = jt);
+            }
+            else if (this.ChildProperty(p.Name) is not null)
+            {
+                // ignore child properties here.
             }
             else if (provider.Force.ToBool())
             {

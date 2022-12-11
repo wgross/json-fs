@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS.Test;
+﻿using System.Collections;
+
+namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ContainerCmdletProviderTest : PowerShellTestBase
@@ -289,6 +291,47 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
         Assert.Equal("Unexpected character encountered while parsing value: v. Path '', line 0, position 0.", result.Message);
+    }
+
+    [Fact]
+    public void Powershell_creates_child_item_from_Hashtable()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject());
+        var child = new Hashtable
+        {
+            ["value"] = 1,
+            ["child2"] = new Hashtable()
+        };
+
+        // ACT
+        var result = this.PowerShell.AddCommand("New-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Value", child)
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.True(r.TryGetValue("child1", out var added));
+
+            var addedObject = (JObject)added;
+            Assert.True(addedObject.TryGetValue("value", out var value));
+            Assert.Equal(new JValue(1), value);
+            Assert.False(addedObject.TryGetJObject("child2", out var _));
+        });
     }
 
     #endregion New-Item -Path -ItemType -Value

@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS.Test;
+﻿using System.Collections;
+
+namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ItemCmdletProviderTest : PowerShellTestBase
@@ -328,15 +330,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
             ["value1"] = new JValue("text")
         });
 
-        var newValue = new JObject
+        var newValue = new Hashtable
         {
-            ["value1"] = new JValue(1)
+            ["value1"] = 1L
         };
-
-        var content = this.PowerShell
-            .AddCommand("ConvertFrom-Json")
-            .AddArgument(newValue.ToString())
-            .Invoke().Single();
 
         this.PowerShell.Commands.Clear();
 
@@ -344,7 +341,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         var result = this.PowerShell
             .AddCommand("Set-Item")
             .AddParameter("Path", @"test:\child")
-            .AddParameter("Value", content)
+            .AddParameter("Value", newValue)
             .AddStatement()
             .AddCommand("Get-Item")
             .AddParameter("Path", @"test:\child")
