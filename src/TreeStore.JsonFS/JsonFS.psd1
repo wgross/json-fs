@@ -21,6 +21,9 @@ v0.5.0:
 - Set-ItemProperty raise exception if property is unkwoen and -Force is not given
 - New-Item with hash table value `New-Item -Value @ { key = "value" }`
 - Set-Item with hash table value `Set-Item -Value @ { key = "value" }`
+v0.5.1:
+- Updates depencies (.Net7)
+- Uses PSChildName as default name property to avoid overlang with a custom `name`-property 
 '
         }
     }
