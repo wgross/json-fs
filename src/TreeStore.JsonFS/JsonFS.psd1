@@ -1,6 +1,6 @@
 @{
     RootModule = 'TreeStore.JsonFS.dll'
-    ModuleVersion = '0.5.0'
+    ModuleVersion = '0.5.1'
     GUID = '27ca097c-25c2-465e-8e93-b46a602cf9cd'
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'

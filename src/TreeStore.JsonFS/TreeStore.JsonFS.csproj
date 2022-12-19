@@ -1,20 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	  <LangVersion>latest</LangVersion>
-	  <VersionPrefix>0.5.0</VersionPrefix>
+	  <VersionPrefix>0.5.1</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0"/>
   </ItemGroup>
 
   <ItemGroup>
     <!-- Either use nuget package or submodule -->
-    <PackageReference Include="TreeStore.Core" Version="0.4.2" />
+    <PackageReference Include="TreeStore.Core" Version="0.4.3" />
     <!--<ProjectReference Include="..\..\submodules\TreeStore.Core\src\TreeStore.Core\TreeStore.Core.csproj" />-->
   </ItemGroup>
 
