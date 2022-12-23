@@ -298,7 +298,7 @@ public class JArrayAdapterTest : IDisposable
 
         // ASSERT
         // the node was created as last node of the array
-        Assert.IsType<NewChildItemParameters>(result);
+        Assert.IsType<JsonFsNewChildItemParameters>(result);
     }
 
     [Fact]
@@ -358,7 +358,7 @@ public class JArrayAdapterTest : IDisposable
         // ARRANGE
         this.ArrangeBeginModification();
 
-        var parameters = new NewChildItemParameters { Insert = new SwitchParameter(true) };
+        var parameters = new JsonFsNewChildItemParameters { Insert = new SwitchParameter(true) };
 
         this.providerMock
             .Setup(p => p.DynamicParameters)

@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Schema;
 using System.Diagnostics.CodeAnalysis;
 
 namespace TreeStore.JsonFS.Test;
@@ -24,7 +25,11 @@ public class PowerShellTestBase : IDisposable
             File.Delete(this.JsonFilePath);
     }
 
+    public string JosnFileNme = $"./{Guid.NewGuid()}";
+
     public string JsonFilePath = $"./{Guid.NewGuid()}.json";
+
+    public string JsonSchemaFilePath = $"./{Guid.NewGuid()}-schema.json";
 
     public void AssertJsonFileContent(Action<JObject> assertion) => this.AssertJsonFileContent(this.JsonFilePath, assertion);
 
@@ -63,6 +68,42 @@ public class PowerShellTestBase : IDisposable
             .AddParameter("PSProvider", "JsonFS")
             .AddParameter("Name", name)
             .AddParameter("Root", $"{path}")
+            .Invoke();
+        this.PowerShell.Commands.Clear();
+    }
+
+    public JObject ArrangeFileSystem(JObject payload, JSchema schema) => this.ArrangeFileSystem("test", this.JsonFilePath, payload, this.JsonSchemaFilePath, schema);
+
+    private JObject ArrangeFileSystem(string name, string jsonFilePath, JObject payload, string jsonSchemaFilePath, JSchema schema)
+    {
+        var fullPath = Path.GetFullPath(jsonFilePath);
+
+        File.WriteAllText(fullPath, payload.ToString());
+
+        var fullSchemaPath = Path.GetFullPath(jsonSchemaFilePath);
+
+        File.WriteAllText(fullSchemaPath, schema.ToString());
+
+        this.ArrangeFileSystem(name, fullPath, fullSchemaPath);
+
+        return payload;
+    }
+
+    protected void ArrangeFileSystem(string name, string path, string schemaPath)
+    {
+        this.PowerShell.Commands.Clear();
+        this.PowerShell
+            .AddCommand("Set-ExecutionPolicy")
+            .AddParameter("ExecutionPolicy", "Unrestricted")
+            .AddStatement()
+            .AddCommand("Import-Module")
+            .AddArgument("./JsonFS.psd1")
+            .AddStatement()
+            .AddCommand("New-PSDrive")
+            .AddParameter("PSProvider", "JsonFS")
+            .AddParameter("Name", name)
+            .AddParameter("Root", $"{path}")
+            .AddParameter("JsonSchema", $"{schemaPath}")
             .Invoke();
         this.PowerShell.Commands.Clear();
     }

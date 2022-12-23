@@ -102,7 +102,7 @@ public sealed class JArrayAdapter : JAdapterBase,
 
     /// <inheritdoc/>
     object? INewChildItem.NewChildItemParameters(string? childName, string? itemTypeName, object? newItemValue)
-        => new NewChildItemParameters();
+        => new JsonFsNewChildItemParameters();
 
     /// <inheritdoc/>
     NewChildItemResult INewChildItem.NewChildItem(ICmdletProvider provider, string? childName, string? itemTypeName, object? newItemValue)
@@ -119,7 +119,7 @@ public sealed class JArrayAdapter : JAdapterBase,
             return new NewChildItemResult(false, null, null);
         }
 
-        if (provider.DynamicParameters is NewChildItemParameters parameters)
+        if (provider.DynamicParameters is JsonFsNewChildItemParameters parameters)
         {
             if (index < this.payload.Count && parameters.Insert.ToBool())
             {

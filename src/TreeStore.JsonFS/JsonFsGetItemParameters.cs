@@ -5,7 +5,7 @@
         /// <summary>
         /// Returned data structure is bases on a <see cref="Hastable"/> instead of a <see cref="JsonFsItem"/>.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter AsHashtable { get; set; }
     }
 }
