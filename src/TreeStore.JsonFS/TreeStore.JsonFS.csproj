@@ -24,7 +24,7 @@
     <None Update="init.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="JsonFs.Format.ps1xml">
+    <None Update="JsonFS.Format.ps1xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="JsonFS.psm1">
