@@ -23,6 +23,28 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TreeStore.Core", "submodule
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TreeStore.Core.Test", "submodules\TreeStore.Core\test\TreeStore.Core.Test\TreeStore.Core.Test.csproj", "{AAB77233-96C2-4851-80CE-9B468A929EEA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.SDK", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.SDK\Microsoft.PowerShell.SDK.csproj", "{6263C636-9A1F-4986-8B52-0243B9102D50}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.Commands.Management", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.Commands.Management\Microsoft.PowerShell.Commands.Management.csproj", "{66CBE75F-AB7F-4CA9-8317-EFA0F3DB0FAF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.Commands.Utility", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.Commands.Utility\Microsoft.PowerShell.Commands.Utility.csproj", "{CD6230D3-C926-40B4-B832-05465DFFFCDC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.ConsoleHost", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.ConsoleHost\Microsoft.PowerShell.ConsoleHost.csproj", "{C6B42DEA-3C5C-430C-A534-0F7778EB236D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.Security", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.csproj", "{15A6010D-68A4-466B-8897-06257E7A02D7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "System.Management.Automation", "submodules\TreeStore.Core\submodules\PowerShell\src\System.Management.Automation\System.Management.Automation.csproj", "{59A818C2-754D-4964-AAEC-C1EEF20E9413}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.CoreCLR.Eventing", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.CoreCLR.Eventing\Microsoft.PowerShell.CoreCLR.Eventing.csproj", "{378193D2-0B74-4477-88D9-5475737B485A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.Commands.Diagnostics", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.PowerShell.Commands.Diagnostics\Microsoft.PowerShell.Commands.Diagnostics.csproj", "{380DB9B9-5A50-4BD5-8E65-9E396108D462}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.WSMan.Management", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.WSMan.Management\Microsoft.WSMan.Management.csproj", "{3BC727F9-B1A3-415D-BC2E-1633605B732A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.WSMan.Runtime", "submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.WSMan.Runtime\Microsoft.WSMan.Runtime.csproj", "{FB47CDBD-6BF6-470B-AE2D-F9EE4228C8F9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PowerShell", "PowerShell", "{0C883BAA-2CD6-4782-91AE-8334127A1E2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +67,46 @@ Global
 		{AAB77233-96C2-4851-80CE-9B468A929EEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AAB77233-96C2-4851-80CE-9B468A929EEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AAB77233-96C2-4851-80CE-9B468A929EEA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6263C636-9A1F-4986-8B52-0243B9102D50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6263C636-9A1F-4986-8B52-0243B9102D50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6263C636-9A1F-4986-8B52-0243B9102D50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6263C636-9A1F-4986-8B52-0243B9102D50}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66CBE75F-AB7F-4CA9-8317-EFA0F3DB0FAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66CBE75F-AB7F-4CA9-8317-EFA0F3DB0FAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66CBE75F-AB7F-4CA9-8317-EFA0F3DB0FAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66CBE75F-AB7F-4CA9-8317-EFA0F3DB0FAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD6230D3-C926-40B4-B832-05465DFFFCDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD6230D3-C926-40B4-B832-05465DFFFCDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD6230D3-C926-40B4-B832-05465DFFFCDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD6230D3-C926-40B4-B832-05465DFFFCDC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6B42DEA-3C5C-430C-A534-0F7778EB236D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6B42DEA-3C5C-430C-A534-0F7778EB236D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6B42DEA-3C5C-430C-A534-0F7778EB236D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6B42DEA-3C5C-430C-A534-0F7778EB236D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15A6010D-68A4-466B-8897-06257E7A02D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15A6010D-68A4-466B-8897-06257E7A02D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15A6010D-68A4-466B-8897-06257E7A02D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15A6010D-68A4-466B-8897-06257E7A02D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59A818C2-754D-4964-AAEC-C1EEF20E9413}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59A818C2-754D-4964-AAEC-C1EEF20E9413}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59A818C2-754D-4964-AAEC-C1EEF20E9413}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59A818C2-754D-4964-AAEC-C1EEF20E9413}.Release|Any CPU.Build.0 = Release|Any CPU
+		{378193D2-0B74-4477-88D9-5475737B485A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{378193D2-0B74-4477-88D9-5475737B485A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{378193D2-0B74-4477-88D9-5475737B485A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{378193D2-0B74-4477-88D9-5475737B485A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{380DB9B9-5A50-4BD5-8E65-9E396108D462}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{380DB9B9-5A50-4BD5-8E65-9E396108D462}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{380DB9B9-5A50-4BD5-8E65-9E396108D462}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{380DB9B9-5A50-4BD5-8E65-9E396108D462}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BC727F9-B1A3-415D-BC2E-1633605B732A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BC727F9-B1A3-415D-BC2E-1633605B732A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BC727F9-B1A3-415D-BC2E-1633605B732A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BC727F9-B1A3-415D-BC2E-1633605B732A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB47CDBD-6BF6-470B-AE2D-F9EE4228C8F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB47CDBD-6BF6-470B-AE2D-F9EE4228C8F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB47CDBD-6BF6-470B-AE2D-F9EE4228C8F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB47CDBD-6BF6-470B-AE2D-F9EE4228C8F9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +116,16 @@ Global
 		{C73FD3AD-B03E-437C-BE88-2207B3314590} = {B06158DD-BBCB-4858-BEF6-A5B7B2938871}
 		{B4A6965D-8401-4A16-857E-9062DF5F8FC8} = {924640B1-D96E-4322-91B2-91C5A0FE498D}
 		{AAB77233-96C2-4851-80CE-9B468A929EEA} = {924640B1-D96E-4322-91B2-91C5A0FE498D}
+		{6263C636-9A1F-4986-8B52-0243B9102D50} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{66CBE75F-AB7F-4CA9-8317-EFA0F3DB0FAF} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{CD6230D3-C926-40B4-B832-05465DFFFCDC} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{C6B42DEA-3C5C-430C-A534-0F7778EB236D} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{15A6010D-68A4-466B-8897-06257E7A02D7} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{59A818C2-754D-4964-AAEC-C1EEF20E9413} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{378193D2-0B74-4477-88D9-5475737B485A} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{380DB9B9-5A50-4BD5-8E65-9E396108D462} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{3BC727F9-B1A3-415D-BC2E-1633605B732A} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
+		{FB47CDBD-6BF6-470B-AE2D-F9EE4228C8F9} = {0C883BAA-2CD6-4782-91AE-8334127A1E2F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1CD9D6B9-7534-4550-9103-FEA32C8D69E0}

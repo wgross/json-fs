@@ -18,13 +18,22 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Moq" Version="4.18.2" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Use PowerShell from Nuget Package -->
+    <!--
     <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.2.6" />
-	<PackageReference Include="Moq" Version="4.18.2" />
+    -->
+    <!-- Use PowerShell from Submodule -->
+    <ProjectReference Include="..\..\submodules\TreeStore.Core\submodules\PowerShell\src\Microsoft.WSMan.Management\Microsoft.WSMan.Management.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     
     <ProjectReference Include="..\..\src\TreeStore.JsonFS\TreeStore.JsonFS.csproj" />
+
   </ItemGroup>
 
 </Project>
