@@ -1,6 +1,6 @@
 @{
     RootModule = 'TreeStore.JsonFS.dll'
-    ModuleVersion = '0.5.1'
+    ModuleVersion = '0.5.2'
     GUID = '27ca097c-25c2-465e-8e93-b46a602cf9cd'
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
@@ -22,8 +22,10 @@ v0.5.0:
 - New-Item with hash table value `New-Item -Value @ { key = "value" }`
 - Set-Item with hash table value `Set-Item -Value @ { key = "value" }`
 v0.5.1:
-- Updates depencies (.Net7)
-- Uses PSChildName as default name property to avoid overlang with a custom `name`-property 
+- Updates dependencies (.Net7)
+- Uses PSChildName as default name property to avoid overlapping with a custom `name`-property 
+v0.5.2:
+- fixes linux by updating TreeStore.Core to v0.5.0
 '
         }
     }

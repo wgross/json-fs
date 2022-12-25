@@ -1,6 +1,6 @@
 # JsonFS
 
-Mounting of JSON files as PowerShell drives.
+Mounts an existing JSON files as PowerShell drives.
 
 ## Mounting a JSON File
 
@@ -11,7 +11,8 @@ PS> Import-Module TreeStore.JsonFs
 PS> New-PSDrive -PSProvider "JsonFs" -Name json -Root "./test.json"
 ```
 
-Afterwards you may navigate to the drive and use the common item commandlets:
+The provider won't create the JSON file nor will it create missing directories in the `Root` path.
+The current location can be set to teh JSON drive with the `Set-Location` command.
 
 ```powershell
 PS> cd json:\
@@ -26,7 +27,7 @@ PS> json: <Return>
 will set the shell location to the current location at the JsonFS drive `json`.
 
 A JsonFS drive only knows container nodes (directories).
-All JSON objects are shown as containers, all JSON properties having a non-scalar value type are shown as child containers. 
+All JSON objects are shown as containers, all JSON properties having a non-scalar value type are shown as child containers.
 All JSON properties having a scalar value type (number, string etc) are shown as PowerShell properties of the file system item.
 
 For arrays a similar semantic is applied: if the first value of an array is a scalar value the whole array is shows as property value. 
@@ -50,7 +51,6 @@ A JSON object like this..
 - object: a sub directory of the Root when calling `Get-ChildItem -Path /`
 - object.value1, object.text1: properties of the item when calling `Get-Item -Path /object`
 - value2, text2: properties of the root item when calling `Get-Item -Path /`
-
 
 ## Modifying a JSON Filesystem
 
@@ -87,7 +87,7 @@ It is possible to copy a Container (recursively or not) to another JsonFS drive:
 PS> Copy-Item -Path json-1:\parent\child -Destination json-2:\another\container -Recurse
 ```
 
-Also moving is implemented between to JSON filesystems
+Also moving is implemented between to JSON file systems
 
 ## Release Notes
 
@@ -97,20 +97,25 @@ Also moving is implemented between to JSON filesystems
   - New-Item: like Set-Item, only value properties are created
 - 0.3.0:
   - Support for Get-/Set-/Clear-Content cmdlets using JSON text added
-  - fs items have base object of type 'JsonFsItem' 
+  - fs items have base object of type 'JsonFsItem'
     - having a property 'Name'
     - having a property 'PropertyName' with all value property names
   - format for fs items
     - table format with Columns 'Name' and 'PropertyNames'.
   - improvements with value arrays: value array are converted from `object[]` provider by powershell from `@(..)`
 - 0.4.0:
-    - create global function `<drive name>:` to change location to newly created JsonFS drive
+  - create global function `<drive name>:` to change location to newly created JsonFS drive
 - 0.5.0:
   - Support for splatting with `Get-Item -AsHashtable`
   - Set-ItemProperty raise exception if property is unkwoen and -Force is not given
   - New-Item with hash table value `New-Item -Value @ { key = "value" }`
   - Set-Item with hash table value `Set-Item -Value @ { key = "value" }`
-  
+v0.5.1:
+- Updates dependencies (.Net7)
+- Uses PSChildName as default name property to avoid overlapping with a custom `name`-property
+v0.5.2:
+- fixes linux by updating TreeStore.Core to v0.5.0
+
 ## Building the module
 
 To build the module just publish the project:
