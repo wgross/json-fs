@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- Either use nuget package or submodule -->
-    <PackageReference Include="TreeStore.Core" Version="0.4.3" />
+    <PackageReference Include="TreeStore.Core" Version="0.5.0" />
     <!--<ProjectReference Include="..\..\submodules\TreeStore.Core\src\TreeStore.Core\TreeStore.Core.csproj" />-->
   </ItemGroup>
 
@@ -24,7 +24,7 @@
     <None Update="init.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="JsonFs.Format.ps1xml">
+    <None Update="JsonFS.Format.ps1xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="JsonFS.psm1">
