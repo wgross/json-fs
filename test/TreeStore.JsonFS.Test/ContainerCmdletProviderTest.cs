@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Newtonsoft.Json.Schema;
+using System.Collections;
 
 namespace TreeStore.JsonFS.Test;
 
@@ -180,6 +181,51 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_removes_root_child_node_and_validates()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(DefaultRoot(), DefaultRootSchema());
+
+        // ACT
+        var _ = this.PowerShell.AddCommand("Remove-Item")
+            .AddParameter("Path", @"test:\object")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.False(r.TryGetJObject("object", out var _));
+        });
+    }
+
+    [Fact]
+    public void Powershell_removes_root_child_node_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = DefaultRootSchema();
+        jsonSchema.Required.Add("object");
+
+        var root = this.ArrangeFileSystem(DefaultRoot(), jsonSchema);
+
+        var originalRoot = root.ToString();
+
+        // ACT
+        var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("Remove-Item")
+            .AddParameter("Path", @"test:\object")
+            .Invoke()
+            .ToArray());
+
+        // ASSERT
+        Assert.True(this.PowerShell.HadErrors);
+        Assert.Equal("Required properties are missing from object: object. Path '', line 1, position 1.", result.Message);
+
+        this.AssertJsonFileContent(c => Assert.Equal(originalRoot, c.ToString()));
+    }
+
+    [Fact]
     public void Powershell_removes_root_child_node_fails_if_node_has_children()
     {
         // ARRANGE
@@ -277,6 +323,92 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_creates_child_item_from_JObject_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+            {
+                "type":"object",
+                "properties":{
+                    "child1" : {
+                        "type":"object"
+                    }
+                }
+            }
+            """);
+
+        var root = this.ArrangeFileSystem(new JObject(), jsonSchema);
+        var child = new JObject
+        {
+            ["child"] = new JObject()
+        };
+
+        // ACT
+        var result = this.PowerShell.AddCommand("New-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Value", child)
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.True(r.TryGetValue("child1", out var added));
+            Assert.Empty(added);
+        });
+    }
+
+    [Fact]
+    public void Powershell_creates_child_item_from_JObject_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+            {
+                "type":"object",
+                "properties":{
+                    "child1" : {
+                        "type":"integer" // expects integer not object
+                    }
+                }
+            }
+            """);
+
+        var root = this.ArrangeFileSystem(new JObject(), jsonSchema);
+
+        var originalRoot = root.ToString();
+
+        var child = new JObject
+        {
+            ["child"] = new JObject()
+        };
+
+        // ACT
+        var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("New-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Value", child)
+            .Invoke()
+            .ToArray());
+
+        // ASSERT
+        Assert.True(this.PowerShell.HadErrors);
+        Assert.Equal("Invalid type. Expected Integer but got Object. Path 'child1'.", result.Message);
+
+        // File remains unchanged
+        this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
+    }
+
+    [Fact]
     public void Powershell_creating_child_fails_with_non_JObject()
     {
         // ARRANGE
@@ -365,6 +497,91 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         });
     }
 
+    [Fact]
+    public void Powershell_renames_childitem_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+            "type":"object",
+            "properties": {
+                "child1" : {
+                    "type":"object"
+                },
+                "newName" : {
+                    "type":"object"
+                }
+            }
+        }
+        """);
+
+        var child = new JObject();
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = child
+        }, jsonSchema);
+
+        // ACT
+        var _ = this.PowerShell.AddCommand("Rename-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("NewName", "newName")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.True(r.TryGetValue("newName", out var _));
+            Assert.False(r.TryGetValue("child1", out var _));
+        });
+    }
+
+    [Fact]
+    public void Powershell_renames_childitem_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+            "type":"object",
+            "properties": {
+                "child1" : {
+                    "type":"object"
+                },
+                "newName" : {
+                    "type":"object"
+                }
+            },
+            "required":["child1"] // can't be removed by renaming it
+        }
+        """);
+
+        var child = new JObject();
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = child
+        }, jsonSchema);
+
+        // ACT
+        var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("Rename-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("NewName", "newName")
+            .Invoke()
+            .ToArray());
+
+        // ASSERT
+        Assert.True(this.PowerShell.HadErrors);
+        Assert.Equal("Required properties are missing from object: child1. Path '', line 1, position 1.", result.Message);
+
+        // file remains unchanged
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.False(r.TryGetValue("newName", out var _));
+            Assert.True(r.TryGetValue("child1", out var _));
+        });
+    }
+
     #endregion Rename-Item -Path -NewName
 
     #region Copy-Item -Path -Destination -Recurse
@@ -408,6 +625,116 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
             Assert.True(r.ChildObject("child2").ChildObject("child1").TryGetValue("property", out var _));
             Assert.False(r.ChildObject("child2").ChildObject("child1").TryGetValue("grandchild", out var _));
         });
+    }
+
+    [Fact]
+    public void Powershell_copies_child_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+            "type":"object",
+            "properties": {
+                "child1" : {
+                    "type":"object"
+                },
+                "child2" : {
+                    "type":"object",
+                    "properties":
+                    {
+                        "child2": {
+                            "type":"object"
+                        }
+                    }
+                }
+            }
+        }
+        """);
+
+        var child1 = new JObject()
+        {
+            ["property"] = new JValue(1),
+            ["grandchild"] = new JObject()
+        };
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = child1,
+            ["child2"] = new JObject()
+        }, jsonSchema);
+
+        // ACT
+        // copy child1 under child2
+        var _ = this.PowerShell.AddCommand("Copy-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Destination", @"test:\child2")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        this.AssertJsonFileContent(r =>
+        {
+            // child1 is still there
+            Assert.NotNull(r.ChildObject("child1"));
+
+            // child2 has a new child: child1
+            Assert.NotNull(r.ChildObject("child2").ChildObject("child1"));
+
+            // copy is shallow and contains the property but not the child node
+            Assert.True(r.ChildObject("child2").ChildObject("child1").TryGetValue("property", out var _));
+            Assert.False(r.ChildObject("child2").ChildObject("child1").TryGetValue("grandchild", out var _));
+        });
+    }
+
+    [Fact]
+    public void Powershell_copies_child_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+            "type":"object",
+            "properties": {
+                "child1" : {
+                    "type":"object"
+                },
+                "child2" : {
+                    "type":"object",
+                    "additionalProperties":false // must not have child proprties
+                }
+            }
+        }
+        """);
+
+        var child1 = new JObject()
+        {
+            ["property"] = new JValue(1),
+            ["grandchild"] = new JObject()
+        };
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = child1,
+            ["child2"] = new JObject()
+        }, jsonSchema);
+
+        var originalRoot = root.ToString();
+
+        // ACT
+        // copy child1 under child2
+        var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("Copy-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Destination", @"test:\child2")
+            .Invoke()
+            .ToArray());
+
+        // ASSERT
+        Assert.True(this.PowerShell.HadErrors);
+        Assert.Equal("Property 'child1' has not been defined and the schema does not allow additional properties. Path 'child2.child1'.", result.Message);
+
+        // file is unchanged
+        this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
     }
 
     [Fact]

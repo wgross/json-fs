@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS.Test;
+﻿using Newtonsoft.Json.Schema;
+
+namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class NavigationCmdletProvider : PowerShellTestBase
@@ -39,6 +41,114 @@ public class NavigationCmdletProvider : PowerShellTestBase
             Assert.True(c2!.TryGetJObject("child1", out var c1));
             Assert.Equal("text", c1!.Value<string>("property"));
         });
+    }
+
+    [Fact]
+    public void PowerShell_moves_node_to_child_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+            "type":"object",
+            "properties":{
+                "child2":{
+                    "type":"object",
+                    "properties":{
+                        "child1":{
+                            "type":"object"
+                        }
+                    },
+                    "required":["child1"] // child1 is expected here
+                },
+            },
+            "additionalPropperties":false // child1 must not be here
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = new JObject
+            {
+                ["property"] = new JValue("text")
+            },
+            ["child2"] = new JObject(),
+        }, jsonSchema);
+
+        var child1 = root["child1"];
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Move-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Destination", @"test:\child2")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child2\child1")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.False(r.TryGetJObject("child1", out var _));
+            Assert.True(r.TryGetJObject("child2", out var c2));
+            Assert.True(c2!.TryGetJObject("child1", out var c1));
+            Assert.Equal("text", c1!.Value<string>("property"));
+        });
+    }
+
+    [Fact]
+    public void PowerShell_moves_node_to_child_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+            "type":"object",
+            "properties":{
+                "child1": {
+                    "type":"object"
+                },
+                "child2":{
+                    "type":"object"
+                },
+            },
+            "required":["child1"] // child1 must not be removed
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child1"] = new JObject
+            {
+                ["property"] = new JValue("text")
+            },
+            ["child2"] = new JObject(),
+        }, jsonSchema);
+
+        var originalRoot = root.ToString();
+
+        var child1 = root["child1"];
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Move-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Destination", @"test:\child2")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child1")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.True(this.PowerShell.HadErrors);
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Required properties are missing from object: child1. Path '', line 1, position 1.", e.Message));
+
+        // child1 is still there
+        Assert.Single(result);
+
+        // file remains unchanged
+        this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
     }
 
     [Fact]

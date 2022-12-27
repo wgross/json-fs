@@ -117,6 +117,35 @@ public class PowerShellTestBase : IDisposable
             ["object"] = new JObject(),
         };
     }
+
+    protected static JSchema DefaultRootSchema()
+    {
+        return JSchema.Parse("""
+        {
+            "type":"object",
+            "properties": {
+                "value": {
+                    "type": "integer",
+                },
+                "array": {
+                    "type":"array"
+                },
+                "object" : {
+                    "type": ["object","null"]
+                }
+            }
+        }
+        """);
+    }
+
+    protected void AssertSingleError<T>(Action<T> assert) where T : Exception
+    {
+        var error = this.PowerShell.Streams.Error.Single();
+
+        Assert.IsType<T>(error.Exception);
+
+        assert((T)(error.Exception));
+    }
 }
 
 public static class JObjectExtensions

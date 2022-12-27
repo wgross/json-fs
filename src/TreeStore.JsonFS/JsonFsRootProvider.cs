@@ -231,7 +231,13 @@ public sealed class JsonFsRootProvider
         using var schemaStream = new StreamReader(jsonSchemaFile.OpenRead());
         using var jsonSchemaReader = new JsonTextReader(schemaStream);
 
-        return JSchema.Load(jsonSchemaReader);
+        var schemaResolver = new JSchemaUrlResolver();
+
+        return JSchema.Load(jsonSchemaReader, new JSchemaReaderSettings
+        {
+            Resolver = schemaResolver,
+            BaseUri = new Uri(jsonSchemaFile.FullName)
+        });
     }
 
     #endregion Follow pending modification

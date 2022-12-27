@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Newtonsoft.Json.Schema;
+using System.Collections;
 
 namespace TreeStore.JsonFS.Test;
 
@@ -320,6 +321,130 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public void Powershell_sets_item_value_from_JObject_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+          "type": "object",
+          "properties": {
+            "value1": {
+              "type": [
+                "string"
+              ]
+            },
+            "child": {
+              "type": "object",
+              "properties": {
+                "value1": {
+                  "type": [
+                    "integer"
+                  ]
+                }
+              }
+            }
+          }
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        },
+        jsonSchema);
+
+        var newValue = new JObject
+        {
+            ["value1"] = new JValue(1)
+        };
+
+        // ACT
+        // modify the root node with an invalid value
+        var result = this.PowerShell.AddCommand("Set-Item")
+            .AddParameter("Path", @"test:\child")
+            .AddParameter("Value", newValue)
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(1, result.Property<long>("value1"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(1L, r.ChildObject("child")!["value1"]!.Value<long>());
+        });
+    }
+
+    [Fact]
+    public void Powershell_sets_item_value_from_JObject_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+          "type": "object",
+          "properties": {
+            "value1": {
+              "type": [
+                "string"
+              ]
+            },
+            "child": {
+              "type": "object",
+              "properties": {
+                "value1": {
+                  "type": [
+                    "integer"
+                  ]
+                }
+              }
+            }
+          }
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        },
+        jsonSchema);
+
+        var originalRoot = root.ToString();
+
+        var newValue = new JObject
+        {
+            ["value1"] = new JValue("text") // this should be a number
+        };
+
+        // ACT
+        // modify the root node with an invalid value
+        var result = this.PowerShell.AddCommand("Set-Item")
+            .AddParameter("Path", @"test:\child")
+            .AddParameter("Value", newValue)
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // the chang was rejected,
+        Assert.True(this.PowerShell.HadErrors);
+
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected Integer but got String. Path 'child.value1'.", e.Message));
+
+        // the $.child is still empty on disk and memory
+        Assert.True(result.PropertyIsNull("value1"));
+
+        this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
+    }
+
+    [Fact]
     public void Powershell_sets_item_value_from_hashtable()
     {
         // ARRANGE
@@ -431,6 +556,104 @@ public class ItemCmdletProviderTest : PowerShellTestBase
             Assert.Equal(JValue.CreateNull(), r.Property("value")!.Value);
             Assert.Equal(JValue.CreateNull(), r.Property("array")!.Value);
         });
+    }
+
+    [Fact]
+    public void Powershell_clears_item_value_and_validates()
+    {
+        // ARRANGE
+        // schema requires no properities
+        var jsonSchema = JSchema.Parse("""
+        {
+          "type": "object",
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value"] = new JValue(1),
+            ["array"] = new JArray(1, 2)
+        }, jsonSchema);
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Clear-Item")
+            .AddParameter("Path", @"test:\")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // underlying JObject has value properties nulled
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Null(result.Property<int?>("value"));
+        Assert.Null(result.Property<int[]>("array"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(JValue.CreateNull(), r.Property("value")!.Value);
+            Assert.Equal(JValue.CreateNull(), r.Property("array")!.Value);
+        });
+    }
+
+    [Fact]
+    public void Powershell_clears_item_value_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+          "type": "object",
+          "properties": {
+            "child": {
+              "type": [
+                "object"
+              ]
+            },
+            "value1": {
+              "type": [
+                "integer"
+              ]
+            },
+            "array": {
+              "type": ["array"]
+            }
+          }
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value"] = new JValue(1),
+            ["array"] = new JArray(1, 2)
+        }, jsonSchema);
+
+        var originalRoot = root.ToString();
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Clear-Item")
+            .AddParameter("Path", @"test:\")
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // validation error happened
+        Assert.True(this.PowerShell.HadErrors);
+
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected Array but got Null. Path 'array'.", e.Message));
+
+        // underlying JObject has been reread and file is unchanged
+        Assert.Equal(1L, result.Property<long>("value"));
+        Assert.Equal(new object[] { 1L, 2L, }, result.Property<object[]>("array"));
+
+        this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
     }
 
     #endregion Clear-Item -Path
@@ -602,6 +825,124 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         {
             Assert.Equal(content.ToString(), r.ToString());
         });
+    }
+
+    [Fact]
+    public void Powershell_writes_JObject_content_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+          "type": "object",
+          "properties": {
+            "child": {
+              "type": [
+                "object"
+              ]
+            },
+            "value1": {
+              "type": [
+                "string"
+              ]
+            }
+          }
+        }
+        """);
+
+        var json = new JObject();
+
+        var root = this.ArrangeFileSystem(json, jsonSchema);
+
+        var content = new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        };
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Set-Content")
+                .AddParameter("Path", @"test:\")
+                    .AddParameter("Value", content.ToString())
+            .AddStatement()
+                .AddCommand("Get-Content")
+                    .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(content.ToString(), result);
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.Equal(content.ToString(), r.ToString());
+        });
+    }
+
+    [Fact]
+    public void Powershell_writes_JObject_content_and_invalidates()
+    {
+        // ARRANGE
+        var jsonSchema = JSchema.Parse("""
+        {
+          "type": "object",
+          "properties": {
+            "child": {
+              "type": [
+                "object"
+              ]
+            },
+            "value1": {
+              "type": [
+                "string"
+              ]
+            },
+            "missing": {
+              "type": [ "integer" ] // property is missing
+            }
+          },
+          "required" : ["missing"] // but is required
+        }
+        """);
+
+        var json = new JObject();
+
+        var root = this.ArrangeFileSystem(json, jsonSchema);
+
+        var originalroot = root.ToString();
+
+        var content = new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        };
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("Set-Content")
+                .AddParameter("Path", @"test:\")
+                    .AddParameter("Value", content.ToString())
+            .AddStatement()
+                .AddCommand("Get-Content")
+                    .AddParameter("Path", @"test:\")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // stting content was rejected
+        Assert.True(this.PowerShell.HadErrors);
+
+        var error = this.PowerShell.Streams.Error.Single();
+
+        Assert.IsType<InvalidOperationException>(error.Exception);
+        Assert.Equal("Required properties are missing from object: missing. Path '', line 1, position 1.", error.Exception.Message);
+
+        // node is unchanged
+        Assert.Equal(originalroot, result);
+
+        // file is unchanged
+        this.AssertJsonFileContent(r => Assert.Equal(originalroot, r.ToString()));
     }
 
     [Fact]

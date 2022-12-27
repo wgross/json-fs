@@ -13,19 +13,41 @@ public partial class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFs
         // path may contain wild cards: take only the first path.
         // if the path couldn't be resolved throw
         var jsonFilePath = this.SessionState.Path.GetUnresolvedProviderPathFromPSPath(drive.Root);
-        if (jsonFilePath is null)
-            throw new PSArgumentException($"Path: '{drive.Root}' couldn't be resolved");
+
+        var jsonSchemaPath = this.DynamicParameters switch
+        {
+            JsonFsNewDriveParameters { JsonSchema: not null } newDriveParameters
+                => this.SessionState.Path.GetUnresolvedProviderPathFromPSPath(newDriveParameters.JsonSchema),
+
+            _ => null
+        };
+
+        var jsonDriveInfo = (jsonFilePath, jsonSchemaPath) switch
+        {
+            (not null, null) => new JsonFsDriveInfo(JsonFsRootProvider.FromFile(jsonFilePath), new PSDriveInfo(
+               name: drive.Name,
+               provider: drive.Provider,
+               root: $@"{drive.Name}:\",
+               description: drive.Description,
+               credential: drive.Credential)),
+
+            (not null, not null) => new JsonFsDriveInfo(JsonFsRootProvider.FromFileAndSchema(jsonFilePath, jsonSchemaPath), new PSDriveInfo(
+               name: drive.Name,
+               provider: drive.Provider,
+               root: $@"{drive.Name}:\",
+               description: drive.Description,
+               credential: drive.Credential)),
+
+            (null, _) => throw new PSArgumentException($"Path: '{drive.Root}' couldn't be resolved")
+        };
 
         // create a function to set the current location to the created drive (<name:> { Set-Location -Path $MyInvocation.MyCommand.Name }
         this.InvokeCommand.InvokeScript($"Set-Item -Path \"Function:\\global:{drive.Name}`:\" -Value ([scriptblock]::Create(\"Set-Location -Path `$MyInvocation.MyCommand.Name\"))");
 
-        return new JsonFsDriveInfo(JsonFsRootProvider.FromFile(jsonFilePath), new PSDriveInfo(
-           name: drive.Name,
-           provider: drive.Provider,
-           root: $@"{drive.Name}:\",
-           description: drive.Description,
-           credential: drive.Credential));
+        return jsonDriveInfo;
     }
+
+    protected override object NewDriveDynamicParameters() => new JsonFsNewDriveParameters();
 
     protected override PSDriveInfo RemoveDrive(PSDriveInfo drive)
     {
