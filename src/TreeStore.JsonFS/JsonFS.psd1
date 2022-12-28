@@ -1,6 +1,6 @@
 @{
     RootModule = 'TreeStore.JsonFS.dll'
-    ModuleVersion = '0.5.2'
+    ModuleVersion = '0.6.0'
     GUID = '27ca097c-25c2-465e-8e93-b46a602cf9cd'
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
@@ -26,6 +26,8 @@ v0.5.1:
 - Uses PSChildName as default name property to avoid overlapping with a custom `name`-property 
 v0.5.2:
 - fixes linux by updating TreeStore.Core to v0.5.0
+v0.6.0:
+- validates JSON schema before writing to file
 '
         }
     }

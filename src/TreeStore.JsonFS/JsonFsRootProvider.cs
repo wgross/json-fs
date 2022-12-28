@@ -208,36 +208,61 @@ public sealed class JsonFsRootProvider
         if (this.cachedJsonSchema is not null)
             return this.cachedJsonSchema;
 
-        if (this.jsonSchemaFile is null)
-            return null;
+        // the JSON scahme was given as a parameter to the drive
+        // try this first
 
-        this.jsonSchemaFile.Refresh();
+        if (this.jsonSchemaFile is not null)
+        {
+            this.jsonSchemaFile.Refresh();
 
-        if (this.jsonSchemaFile.Exists)
-            this.cachedJsonSchema = this.ReadJsonSchemaFile(this.jsonSchemaFile);
+            if (this.jsonSchemaFile.Exists)
+                this.cachedJsonSchema = this.ReadJsonSchemaFile(this.jsonSchemaFile);
+        }
+
+        // the JSON schame might by a property in the root object
+        // thsi may ba an http or file scheme.
+
+        var root = this.GetRootJObject();
+
+        if (root.TryGetValue("$schema", out var jsonSchameUrl))
+        {
+            this.cachedJsonSchema = this.ReadJsonSchemaUrl(jsonSchameUrl.Value<string>());
+        }
 
         return this.cachedJsonSchema;
     }
 
-    //public JSchema? GetJsonSchema(JObject root) => root.Property("$schema", StringComparison.OrdinalIgnoreCase) switch
-    //{
-    //    JProperty { Value.Type: JTokenType.String } jproperty => this.ReadJsonSchema(jproperty.Value.ToString()),
-
-    //    _ => null
-    //};
-
     private JSchema? ReadJsonSchemaFile(FileInfo jsonSchemaFile)
+        => this.ReadJsonSchemaStream(jsonSchemaFile.OpenRead());
+
+    private JSchema? ReadJsonSchemaUrl(string? uri) => uri is null ? null : this.ReadJsonSchemaUrl(new Uri(uri));
+
+    private JSchema? ReadJsonSchemaUrl(Uri uri)
     {
-        using var schemaStream = new StreamReader(jsonSchemaFile.OpenRead());
-        using var jsonSchemaReader = new JsonTextReader(schemaStream);
-
-        var schemaResolver = new JSchemaUrlResolver();
-
-        return JSchema.Load(jsonSchemaReader, new JSchemaReaderSettings
+        return uri switch
         {
-            Resolver = schemaResolver,
-            BaseUri = new Uri(jsonSchemaFile.FullName)
-        });
+            { Scheme: "http" } => this.ReadJsonSchemaUrlOverHttp(uri),
+            { Scheme: "https" } => this.ReadJsonSchemaUrlOverHttp(uri),
+            { Scheme: "file" } => this.ReadJsonSchemaUrlFromFile(uri),
+
+            _ => null,
+        };
+    }
+
+    private JSchema? ReadJsonSchemaUrlOverHttp(Uri uri)
+        => this.ReadJsonSchemaStream(Await(new HttpClient().GetStreamAsync(uri)));
+
+    private JSchema? ReadJsonSchemaUrlFromFile(Uri uri)
+        => this.ReadJsonSchemaStream(File.OpenRead(uri.LocalPath));
+
+    private JSchema? ReadJsonSchemaStream(Stream jsonStream)
+    {
+        JSchemaUrlResolver resolver = new();
+
+        using var streamReader = new StreamReader(jsonStream);
+        using var jsonReader = new JsonTextReader(streamReader);
+
+        return JSchema.Load(jsonReader, resolver);
     }
 
     #endregion Follow pending modification
@@ -270,4 +295,6 @@ public sealed class JsonFsRootProvider
     }
 
     #endregion Save JSON to file
+
+    private static T Await<T>(Task<T> task) => task.GetAwaiter().GetResult();
 }
