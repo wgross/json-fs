@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Schema;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class PropertyCmdletProviderTest : PowerShellTestBase
@@ -79,10 +77,10 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void PowerShell_clears_item_property_value_and_validates()
+    public async Task PowerShell_clears_item_property_value_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -122,10 +120,10 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void PowerShell_clears_item_property_value_and_invalidates()
+    public async Task PowerShell_clears_item_property_value_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -157,7 +155,7 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected Integer but got Null. Path 'value'.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("IntegerExpected: #/value", e.Message));
 
         // file is unchanged
         this.AssertJsonFileContent(c => Assert.Equal(originalRoot, c.ToString()));
@@ -194,10 +192,10 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_sets_item_property_and_validates()
+    public async Task Powershell_sets_item_property_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -237,10 +235,10 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_sets_item_property_and_invalidates()
+    public async Task Powershell_sets_item_property_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -272,7 +270,7 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected Integer but got String. Path 'data'.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("IntegerExpected: #/data", e.Message));
 
         // value hasn't changed
         Assert.Equal(1L, result.Property<long>("data"));

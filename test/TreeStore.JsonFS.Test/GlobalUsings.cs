@@ -6,3 +6,5 @@ global using System.Threading.Tasks;
 global using TreeStore.Core;
 global using Xunit;
 global using System.IO;
+global using NJsonSchema;
+global using System.Collections;

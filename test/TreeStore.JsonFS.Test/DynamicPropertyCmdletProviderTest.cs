@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Schema;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
@@ -35,10 +33,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_removes_item_propery_and_validates()
+    public async Task Powershell_removes_item_propery_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -76,10 +74,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_removes_item_propery_and_invalidates()
+    public async Task Powershell_removes_item_propery_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -117,7 +115,7 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Required properties are missing from object: data. Path '', line 1, position 1.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("PropertyRequired: #/data", e.Message));
 
         // node is unchanged
         Assert.Equal(1L, result.Property<long>("data"));
@@ -167,10 +165,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_item_property_and_validates()
+    public async Task Powershell_copies_item_property_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {
@@ -215,10 +213,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_item_property_and_invalidates()
+    public async Task Powershell_copies_item_property_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {
@@ -260,7 +258,7 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected String but got Integer. Path 'child.data', line 2, position 11.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("StringExpected: #/child.data", e.Message));
 
         Assert.Equal(2, result.Length);
 
@@ -315,10 +313,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_moves_item_property_and_validates()
+    public async Task Powershell_moves_item_property_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -371,10 +369,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_moves_item_property_and_invalidates()
+    public async Task Powershell_moves_item_property_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -421,7 +419,7 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Required properties are missing from object: data. Path '', line 1, position 1.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("PropertyRequired: #/data", e.Message));
 
         Assert.Equal(2, result.Length);
 
@@ -468,10 +466,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_creates_item_property_from_scalar_and_validates()
+    public async Task Powershell_creates_item_property_from_scalar_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -508,10 +506,10 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_creates_item_property_from_scalar_and_invalidates()
+    public async Task Powershell_creates_item_property_from_scalar_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -547,7 +545,7 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // property was created with value
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected String but got Integer. Path 'data', line 2, position 11.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("StringExpected: #/data", e.Message));
 
         Assert.True(result[0].PropertyIsNull("newdata"));
 

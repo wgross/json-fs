@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Schema;
 using System.Diagnostics.CodeAnalysis;
 
 namespace TreeStore.JsonFS.Test;
@@ -72,9 +71,10 @@ public class PowerShellTestBase : IDisposable
         this.PowerShell.Commands.Clear();
     }
 
-    public JObject ArrangeFileSystem(JObject payload, JSchema schema) => this.ArrangeFileSystem("test", this.JsonFilePath, payload, this.JsonSchemaFilePath, schema);
+    public JObject ArrangeFileSystem(JObject payload, JsonSchema schema) 
+        => this.ArrangeFileSystem("test", this.JsonFilePath, payload, this.JsonSchemaFilePath, schema);
 
-    private JObject ArrangeFileSystem(string name, string jsonFilePath, JObject payload, string jsonSchemaFilePath, JSchema schema)
+    private JObject ArrangeFileSystem(string name, string jsonFilePath, JObject payload, string jsonSchemaFilePath, JsonSchema schema)
     {
         var fullPath = Path.GetFullPath(jsonFilePath);
 
@@ -82,7 +82,7 @@ public class PowerShellTestBase : IDisposable
 
         var fullSchemaPath = Path.GetFullPath(jsonSchemaFilePath);
 
-        File.WriteAllText(fullSchemaPath, schema.ToString());
+        File.WriteAllText(fullSchemaPath, schema.ToJson());
 
         this.ArrangeFileSystem(name, fullPath, fullSchemaPath);
 
@@ -118,9 +118,9 @@ public class PowerShellTestBase : IDisposable
         };
     }
 
-    protected static JSchema DefaultRootSchema()
+    protected async Task<JsonSchema> DefaultRootSchema()
     {
-        return JSchema.Parse("""
+        return await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {

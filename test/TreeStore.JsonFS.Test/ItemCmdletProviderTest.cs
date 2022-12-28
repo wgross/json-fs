@@ -1,7 +1,4 @@
-﻿using Newtonsoft.Json.Schema;
-using System.Collections;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ItemCmdletProviderTest : PowerShellTestBase
@@ -321,10 +318,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_sets_item_value_from_JObject_and_validates()
+    public async Task Powershell_sets_item_value_from_JObject_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
           "type": "object",
           "properties": {
@@ -381,10 +378,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_sets_item_value_from_JObject_and_invalidates()
+    public async Task Powershell_sets_item_value_from_JObject_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
           "type": "object",
           "properties": {
@@ -436,7 +433,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // the chang was rejected,
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected Integer but got String. Path 'child.value1'.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("IntegerExpected: #/child.value1", e.Message));
 
         // the $.child is still empty on disk and memory
         Assert.True(result.PropertyIsNull("value1"));
@@ -559,13 +556,13 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_clears_item_value_and_validates()
+    public async Task Powershell_clears_item_value_and_validates()
     {
         // ARRANGE
         // schema requires no properities
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
-          "type": "object",
+          "type": "object"
         }
         """);
 
@@ -600,10 +597,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_clears_item_value_and_invalidates()
+    public async Task Powershell_clears_item_value_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
           "type": "object",
           "properties": {
@@ -647,7 +644,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // validation error happened
         Assert.True(this.PowerShell.HadErrors);
 
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Invalid type. Expected Array but got Null. Path 'array'.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("ArrayExpected: #/array", e.Message));
 
         // underlying JObject has been reread and file is unchanged
         Assert.Equal(1L, result.Property<long>("value"));
@@ -828,10 +825,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_writes_JObject_content_and_validates()
+    public async Task Powershell_writes_JObject_content_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
           "type": "object",
           "properties": {
@@ -881,10 +878,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_writes_JObject_content_and_invalidates()
+    public async Task Powershell_writes_JObject_content_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
           "type": "object",
           "properties": {
@@ -936,7 +933,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         var error = this.PowerShell.Streams.Error.Single();
 
         Assert.IsType<InvalidOperationException>(error.Exception);
-        Assert.Equal("Required properties are missing from object: missing. Path '', line 1, position 1.", error.Exception.Message);
+        Assert.Equal("PropertyRequired: #/missing", error.Exception.Message);
 
         // node is unchanged
         Assert.Equal(originalroot, result);

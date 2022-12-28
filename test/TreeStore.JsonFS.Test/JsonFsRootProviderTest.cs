@@ -1,16 +1,14 @@
-﻿using Newtonsoft.Json.Schema;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(File))]
 public class JsonFsRootProviderTest
 {
+    private readonly string? directory;
     private readonly string jsonFilePath;
-    private readonly string jsonSchemaPath;
 
     public JsonFsRootProviderTest()
     {
-        var directory = Path.GetDirectoryName(typeof(JsonFsRootProviderTest).Assembly.Location);
+        this.directory = Path.GetDirectoryName(typeof(JsonFsRootProviderTest).Assembly.Location);
         this.jsonFilePath = Path.Combine(directory!, "example-data.json");
 
         var data = new JObject
@@ -22,18 +20,6 @@ public class JsonFsRootProviderTest
             }
         };
         File.WriteAllText(this.jsonFilePath, data.ToString());
-
-        this.jsonSchemaPath = Path.Combine(directory!, "example-schema.json");
-
-        var schema = JSchema.Parse(@"{
-  'type': 'object',
-  'properties': {
-    'data1': {'type':'string'},
-    'child1': {'type':'object'},
-  },
-  'required':['data1']
-}");
-        File.WriteAllText(this.jsonSchemaPath, schema.ToString());
     }
 
     [Fact]
@@ -171,6 +157,19 @@ public class JsonFsRootProviderTest
     {
         // ARRANGE
 
+        var jsonSchemaPath = Path.Combine(directory!, "example-schema.json");
+
+        var schema = await JsonSchema.FromJsonAsync(@"{
+          'type': 'object',
+          'properties': {
+            'data1': {'type':'string'},
+            'child1': {'type':'object'},
+          },
+          'required':['data1']
+        }");
+
+        await File.WriteAllTextAsync(jsonSchemaPath, schema.ToJson());
+
         var data = new JObject
         {
             ["data1"] = "data1-changed",
@@ -181,12 +180,12 @@ public class JsonFsRootProviderTest
         };
         await File.WriteAllTextAsync(this.jsonFilePath, data.ToString());
 
-        var rootProvider = JsonFsRootProvider.FromFileAndSchema(path: this.jsonFilePath, schemaPath: this.jsonSchemaPath);
+        var rootProvider = JsonFsRootProvider.FromFileAndSchema(path: this.jsonFilePath, schemaPath: jsonSchemaPath);
 
         var rootNode = rootProvider.GetRootJObject();
 
         // ACT
-        InvalidOperationException result = null;
+        InvalidOperationException? result = null;
 
         result = Assert.Throws<InvalidOperationException>(() =>
         {
@@ -203,7 +202,7 @@ public class JsonFsRootProviderTest
         });
 
         // ASSERT
-        Assert.Equal("Required properties are missing from object: data1. Path '', line 1, position 1.", result.Message);
+        Assert.Equal("PropertyRequired: #/data1", result.Message);
 
         // file hasn't been modified
         var afterWrite = JObject.Parse(await File.ReadAllTextAsync(this.jsonFilePath));

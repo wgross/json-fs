@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Schema;
+﻿using NJsonSchema;
 
 namespace TreeStore.JsonFS;
 
@@ -56,7 +56,7 @@ public sealed class JsonFsRootProvider
     #region Provide the root node to the Cmdlet provider
 
     private JObject? rootNode;
-    private JSchema? cachedJsonSchema;
+    private JsonSchema? cachedJsonSchema;
 
     public JObject GetRootJObject()
     {
@@ -182,19 +182,24 @@ public sealed class JsonFsRootProvider
 
             if (latestJsonSchema is null)
             {
-                this.WriteJsonFile(this.jsonFile);
+                this.WriteJsonFile(this.GetRootJObject().ToString());
             }
             else
             {
-                IList<string> errorMessages = new List<string>();
-                if (!this.GetRootJObject().IsValid(latestJsonSchema, out errorMessages))
+                // is ist recommended to match the JSON content as string b/c date/time formats
+                // https://github.com/RicoSuter/NJsonSchema/wiki/JsonSchema#validatestring-vs-validatejtoken
+
+                var jsonContent = this.GetRootJObject().ToString();
+
+                var errorMessages = latestJsonSchema.Validate(jsonContent);
+                if (errorMessages.Count > 0)
                 {
-                    // ivalid json is removed from memory
+                    // invalid json is removed from memory
                     this.rootNode = null;
 
                     throw new InvalidOperationException(string.Join(";", errorMessages));
                 }
-                else this.WriteJsonFile();
+                else this.WriteJsonFile(jsonContent);
             }
         }
         finally
@@ -203,7 +208,7 @@ public sealed class JsonFsRootProvider
         }
     }
 
-    private JSchema? GetJsonSchema()
+    private JsonSchema? GetJsonSchema()
     {
         if (this.cachedJsonSchema is not null)
             return this.cachedJsonSchema;
@@ -232,13 +237,13 @@ public sealed class JsonFsRootProvider
         return this.cachedJsonSchema;
     }
 
-    private JSchema? ReadJsonSchemaFile(FileInfo jsonSchemaFile)
-        => this.ReadJsonSchemaStream(jsonSchemaFile.OpenRead());
+    private JsonSchema? ReadJsonSchemaFile(FileInfo jsonSchemaFile) => Await(JsonSchema.FromFileAsync(jsonSchemaFile.FullName));
 
-    private JSchema? ReadJsonSchemaUrl(string? uri) => uri is null ? null : this.ReadJsonSchemaUrl(new Uri(uri));
+    private JsonSchema? ReadJsonSchemaUrl(string? uri) => uri is null ? null : this.ReadJsonSchemaUrl(new Uri(uri));
 
-    private JSchema? ReadJsonSchemaUrl(Uri uri)
+    private JsonSchema? ReadJsonSchemaUrl(Uri uri)
     {
+        // NJsonSchema supports reading from http(s): scheme but not from file: scheme
         return uri switch
         {
             { Scheme: "http" } => this.ReadJsonSchemaUrlOverHttp(uri),
@@ -249,42 +254,26 @@ public sealed class JsonFsRootProvider
         };
     }
 
-    private JSchema? ReadJsonSchemaUrlOverHttp(Uri uri)
-        => this.ReadJsonSchemaStream(Await(new HttpClient().GetStreamAsync(uri)));
+    private JsonSchema? ReadJsonSchemaUrlFromFile(Uri uri) => Await(JsonSchema.FromFileAsync(uri.LocalPath));
 
-    private JSchema? ReadJsonSchemaUrlFromFile(Uri uri)
-        => this.ReadJsonSchemaStream(File.OpenRead(uri.LocalPath));
-
-    private JSchema? ReadJsonSchemaStream(Stream jsonStream)
-    {
-        JSchemaUrlResolver resolver = new();
-
-        using var streamReader = new StreamReader(jsonStream);
-        using var jsonReader = new JsonTextReader(streamReader);
-
-        return JSchema.Load(jsonReader, resolver);
-    }
+    private JsonSchema? ReadJsonSchemaUrlOverHttp(Uri uri) => Await(JsonSchema.FromUrlAsync(uri.AbsoluteUri));
 
     #endregion Follow pending modification
 
     #region Save JSON to file
 
-    private void WriteJsonFile() => this.WriteJsonFile(this.jsonFile);
+    private void WriteJsonFile(string jsonContent) => this.WriteJsonFile(this.jsonFile, jsonContent);
 
-    private void WriteJsonFile(FileInfo file) => this.WriteJsonFile(this.OpenOrCreateFileForWriting(file));
+    private void WriteJsonFile(FileInfo file, string jsonContent) => this.WriteJsonFile(this.OpenOrCreateFileForWriting(file), jsonContent);
 
-    private void WriteJsonFile(FileStream fileStream)
+    private void WriteJsonFile(FileStream fileStream, string jsonContent)
     {
         this.watcher.EnableRaisingEvents = false;
         try
         {
-            var root = this.GetRootJObject();
-
-            // verify the schema first
-
             using var streamWriter = new StreamWriter(fileStream);
 
-            streamWriter.Write(root.ToString());
+            streamWriter.Write(jsonContent);
         }
         finally
         {

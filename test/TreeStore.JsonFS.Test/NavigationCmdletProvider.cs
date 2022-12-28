@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Schema;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class NavigationCmdletProvider : PowerShellTestBase
@@ -44,10 +42,10 @@ public class NavigationCmdletProvider : PowerShellTestBase
     }
 
     [Fact]
-    public void PowerShell_moves_node_to_child_and_validates()
+    public async Task PowerShell_moves_node_to_child_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -99,10 +97,10 @@ public class NavigationCmdletProvider : PowerShellTestBase
     }
 
     [Fact]
-    public void PowerShell_moves_node_to_child_and_invalidates()
+    public async Task PowerShell_moves_node_to_child_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties":{
@@ -142,7 +140,7 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
-        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("Required properties are missing from object: child1. Path '', line 1, position 1.", e.Message));
+        this.AssertSingleError<InvalidOperationException>(e => Assert.Equal("PropertyRequired: #/child1", e.Message));
 
         // child1 is still there
         Assert.Single(result);

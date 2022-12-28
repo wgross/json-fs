@@ -86,7 +86,7 @@ public class JObjectAdapterTest : IDisposable
         });
 
         // ACT
-        var parameters = (JsonFsGetItemParameters)((IGetItem)node).GetItemParameters();
+        var parameters = (JsonFsGetItemParameters)((IGetItem)node).GetItemParameters()!;
 
         parameters!.AsHashtable = new SwitchParameter(isPresent: true);
 
@@ -1742,10 +1742,8 @@ public class JObjectAdapterTest : IDisposable
         Assert.Equal(JTokenType.Null, v1!.Type);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void SetItemProperty_ignores_child_object_nodes(bool force)
+    [Fact]
+    public void SetItemProperty_ignores_child_object_nodes()
     {
         // ARRANGE
         var root = new JObject
@@ -1775,10 +1773,8 @@ public class JObjectAdapterTest : IDisposable
         Assert.IsType<JObject>(v2);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void SetItemProperty_ignores_child_array_nodes(bool force)
+    [Fact]
+    public void SetItemProperty_ignores_child_array_nodes()
     {
         // ARRANGE
         // create an item woth an array property data2

@@ -1,7 +1,4 @@
-﻿using Newtonsoft.Json.Schema;
-using System.Collections;
-
-namespace TreeStore.JsonFS.Test;
+﻿namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ContainerCmdletProviderTest : PowerShellTestBase
@@ -181,10 +178,10 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_removes_root_child_node_and_validates()
+    public async Task Powershell_removes_root_child_node_and_validates()
     {
         // ARRANGE
-        var root = this.ArrangeFileSystem(DefaultRoot(), DefaultRootSchema());
+        var root = this.ArrangeFileSystem(DefaultRoot(), await this.DefaultRootSchema());
 
         // ACT
         var _ = this.PowerShell.AddCommand("Remove-Item")
@@ -202,11 +199,12 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_removes_root_child_node_and_invalidates()
+    public async Task Powershell_removes_root_child_node_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = DefaultRootSchema();
-        jsonSchema.Required.Add("object");
+        var jsonSchema = await this.DefaultRootSchema();
+
+        jsonSchema.RequiredProperties.Add("object");
 
         var root = this.ArrangeFileSystem(DefaultRoot(), jsonSchema);
 
@@ -220,7 +218,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
-        Assert.Equal("Required properties are missing from object: object. Path '', line 1, position 1.", result.Message);
+        Assert.Equal("PropertyRequired: #/object", result.Message);
 
         this.AssertJsonFileContent(c => Assert.Equal(originalRoot, c.ToString()));
     }
@@ -323,19 +321,19 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_creates_child_item_from_JObject_and_validates()
+    public async Task Powershell_creates_child_item_from_JObject_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
-            {
-                "type":"object",
-                "properties":{
-                    "child1" : {
-                        "type":"object"
-                    }
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
+        {
+            "type":"object",
+            "properties":{
+                "child1" : {
+                    "type":"object"
                 }
             }
-            """);
+        }
+        """);
 
         var root = this.ArrangeFileSystem(new JObject(), jsonSchema);
         var child = new JObject
@@ -370,10 +368,10 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_creates_child_item_from_JObject_and_invalidates()
+    public async Task Powershell_creates_child_item_from_JObject_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
             {
                 "type":"object",
                 "properties":{
@@ -402,7 +400,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
-        Assert.Equal("Invalid type. Expected Integer but got Object. Path 'child1'.", result.Message);
+        Assert.Equal("IntegerExpected: #/child1", result.Message);
 
         // File remains unchanged
         this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
@@ -498,10 +496,10 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_renames_childitem_and_validates()
+    public async Task Powershell_renames_childitem_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {
@@ -539,10 +537,10 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_renames_childitem_and_invalidates()
+    public async Task Powershell_renames_childitem_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {
@@ -572,7 +570,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
-        Assert.Equal("Required properties are missing from object: child1. Path '', line 1, position 1.", result.Message);
+        Assert.Equal("PropertyRequired: #/child1", result.Message);
 
         // file remains unchanged
         this.AssertJsonFileContent(r =>
@@ -628,10 +626,10 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_and_validates()
+    public async Task Powershell_copies_child_and_validates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {
@@ -689,10 +687,10 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_and_invalidates()
+    public async Task Powershell_copies_child_and_invalidates()
     {
         // ARRANGE
-        var jsonSchema = JSchema.Parse("""
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
         {
             "type":"object",
             "properties": {
@@ -731,7 +729,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ASSERT
         Assert.True(this.PowerShell.HadErrors);
-        Assert.Equal("Property 'child1' has not been defined and the schema does not allow additional properties. Path 'child2.child1'.", result.Message);
+        Assert.Equal("NoAdditionalPropertiesAllowed: #/child2.child1", result.Message);
 
         // file is unchanged
         this.AssertJsonFileContent(r => Assert.Equal(originalRoot, r.ToString()));
