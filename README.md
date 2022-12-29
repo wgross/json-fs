@@ -168,3 +168,5 @@ If the schema validation fails the change is thrown away ad the the file is rere
   - fixes linux by updating TreeStore.Core to v0.5.0
 - v0.6.0:
   - validates JSON schema before writing to file.
+- v0.6.1:
+  - replaces JSON.Net schema with NJsonSchema b/c of licensing
