@@ -170,3 +170,5 @@ If the schema validation fails the change is thrown away ad the the file is rere
   - validates JSON schema before writing to file.
 - v0.6.1:
   - replaces JSON.Net schema with NJsonSchema b/c of licensing
+- v0.7.0:
+  - Set-Item and New-Item accept class instances (internal conversion to PSObject)

@@ -126,6 +126,10 @@ public sealed class JObjectAdapter : JAdapterBase,
                 this.SetItemFromHashtable(provider, htable);
                 break;
 
+            case object { } obj:
+                this.SetItemFromPSObject(provider, PSObject.AsPSObject(value));
+                break;
+
             default:
                 break;
         }
@@ -254,9 +258,9 @@ public sealed class JObjectAdapter : JAdapterBase,
 
             string json => this.NewChildItemFromJson(provider, childName, itemTypeName, json),
 
-            null => this.NewChildItemEmpty(provider, childName, itemTypeName),
+            object { } obj => this.NewChildItemFromPSObject(provider, childName, itemTypeName, PSObject.AsPSObject(newItemValue)),
 
-            _ => new(Created: false, Name: childName, null)
+            null => this.NewChildItemEmpty(provider, childName, itemTypeName),
         };
     }
 

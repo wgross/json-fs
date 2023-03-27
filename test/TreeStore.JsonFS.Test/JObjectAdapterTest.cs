@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Collections;
 using System.Collections.Generic;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Nodes;
@@ -219,6 +218,52 @@ public class JObjectAdapterTest : IDisposable
         newData.Properties.Add(new PSNoteProperty("objectArray", new object[] { new PSObject(), new PSObject() }));
         newData.Properties.Add(new PSNoteProperty("value", 1L));
         newData.Properties.Add(new PSNoteProperty("valueArray", new[] { 1, 2 }));
+
+        this.providerMock
+           .Setup(p => p.DynamicParameters)
+           .Returns(new JsonFsGetItemParameters());
+
+        // ACT
+        // override node with new data
+        node.GetRequiredService<ISetItem>().SetItem(this.providerMock.Object, newData);
+
+        // ASSERT
+        // array was added, value overrides the old value
+        var psobject = node.GetRequiredService<IGetItem>().GetItem(this.providerMock.Object);
+
+        Assert.Equal(1, psobject!.Property<long>("value"));
+        Assert.Equal(new object[] { 1, 2 }, psobject!.Property<object[]>("valueArray"));
+
+        // value2 was removed
+        Assert.Null(psobject!.Properties.FirstOrDefault(p => p.Name == "value2"));
+
+        // object and objectArray weren't added, the original children are still there
+        Assert.Equal(
+            expected: new[] { "childObject", "childArray" },
+            actual: node.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object).Select(c => c.Name));
+    }
+
+    [Fact]
+    public void SetItem_replaces_value_properties_from_object()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var node = new JObjectAdapter(new JObject
+        {
+            ["value"] = new JValue("text"),
+            ["value2"] = new JValue(2),
+            ["childObject"] = new JObject(),
+            ["childArray"] = new JArray(new JObject())
+        });
+
+        var newData = new
+        {
+            child = new { },
+            objectArray = new[] { new { }, new { } },
+            value = 1L,
+            valueArray = new[] { 1, 2 }
+        };
 
         this.providerMock
            .Setup(p => p.DynamicParameters)
@@ -792,6 +837,45 @@ public class JObjectAdapterTest : IDisposable
             ["value"] = 1,
             ["valueArray"] = new[] { 1, 2 },
             ["child2"] = new Hashtable()
+        };
+
+        var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);
+
+        // ASSERT
+        // the node was created as a container node
+        Assert.True(result.Created);
+        Assert.Equal("container1", result!.Name);
+
+        // a JObject was added to the parent node
+        Assert.True(underlying.TryGetValue("container1", out var added));
+
+        // the property was kept as well.
+        Assert.Equal("text", added["property2"]!.Value<string>());
+
+        // child object and child array were added
+        Assert.Empty(result.NodeServices!.GetRequiredService<IGetChildItem>().GetChildItems(this.providerMock.Object));
+    }
+
+    [Fact]
+    public void NewChildItem_creates_JObject_item_from_object()
+    {
+        // ARRANGE
+        this.ArrangeBeginModification();
+
+        var underlying = new JObject
+        {
+            { "property" , "text" },
+        };
+
+        var node = new JObjectAdapter(underlying);
+
+        // ACT
+        var value = new
+        {
+            property2 = "text",
+            value = 1,
+            valueArray = new[] { 1L, 2L },
+            objectArray = new[] { new { }, new { } }
         };
 
         var result = ((INewChildItem)node).NewChildItem(this.providerMock.Object, "container1", "itemTypeValue", value);

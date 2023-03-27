@@ -407,6 +407,53 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
+    public async Task Powershell_creates_child_item_from_object_and_validates()
+    {
+        // ARRANGE
+        var jsonSchema = await JsonSchema.FromJsonAsync("""
+        {
+            "type":"object",
+            "properties":{
+                "child1" : {
+                    "type":"object"
+                }
+            }
+        }
+        """);
+
+        var root = this.ArrangeFileSystem(new JObject(), jsonSchema);
+        var child = new
+        {
+            child = new object { }
+        };
+
+        // ACT
+        var result = this.PowerShell.AddCommand("New-Item")
+            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Value", child)
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psobject = result.Single();
+
+        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        this.AssertJsonFileContent(r =>
+        {
+            Assert.True(r.TryGetValue("child1", out var added));
+            Assert.Empty(added);
+        });
+    }
+
+    [Fact]
     public void Powershell_creating_child_fails_with_non_JObject()
     {
         // ARRANGE

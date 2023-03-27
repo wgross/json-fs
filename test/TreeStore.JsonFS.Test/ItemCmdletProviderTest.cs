@@ -312,7 +312,41 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         this.AssertJsonFileContent(r =>
         {
-            Assert.Equal(newValue["data"], r.ChildObject("child")!["data"]);
+            Assert.False(r.ChildObject("child").ContainsKey("child"));
+        });
+    }
+
+    [Fact]
+    public void Powershell_sets_item_value_from_object()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["child"] = new JObject(),
+            ["value1"] = new JValue("text")
+        });
+
+        var newValue = new
+        {
+            value1 = 1
+        };
+
+        // ACT
+        var result = this.PowerShell.AddCommand("Set-Item")
+            .AddParameter("Path", @"test:\child")
+            .AddParameter("Value", newValue)
+            .AddStatement()
+            .AddCommand("Get-Item")
+            .AddParameter("Path", @"test:\child")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.Equal(1, result.Property<int>("value1"));
+
+        this.AssertJsonFileContent(r =>
+        {
             Assert.False(r.ChildObject("child").ContainsKey("child"));
         });
     }
