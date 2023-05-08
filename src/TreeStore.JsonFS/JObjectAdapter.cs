@@ -12,7 +12,7 @@ public sealed class JObjectAdapter : JAdapterBase,
     // NavigationCmdletProvider
     IMoveChildItem,
     // IPropertyCmdletProvider
-    IClearItemProperty, ISetItemProperty, IRemoveItemProperty, ICopyItemProperty, IMoveItemProperty, INewItemProperty, IRenameItemProperty,
+    IClearItemProperty, IGetItemProperty, ISetItemProperty, IRemoveItemProperty, ICopyItemProperty, IMoveItemProperty, INewItemProperty, IRenameItemProperty,
     // IContentProvider
     IGetItemContent, ISetChildItemContent, IClearItemContent
 {
@@ -64,10 +64,13 @@ public sealed class JObjectAdapter : JAdapterBase,
     }
 
     private PSObject ItemAsJsonFsItem(ICmdletProvider provider)
-    {
-        var pso = PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload), this.ValueProperties().Select(p => p.Name).ToArray()));
+        => this.ItemAsJsonFsItem(provider, this.ValueProperties());
 
-        foreach (var property in this.ValueProperties())
+    private PSObject ItemAsJsonFsItem(ICmdletProvider provider, IEnumerable<JProperty> valueProperties)
+    {
+        var pso = PSObject.AsPSObject(new JsonFsItem(this.GetNameFromParent(this.payload), valueProperties.Select(p => p.Name).ToArray()));
+
+        foreach (var property in valueProperties)
         {
             switch (property.Value)
             {
@@ -533,13 +536,58 @@ public sealed class JObjectAdapter : JAdapterBase,
 
     #endregion IClearItemProperty
 
+    #region IGetItemProperty
+
+    object? IGetItemProperty.GetItemPropertyParameters(IEnumerable<string>? properties)
+    {
+        // one parameter might be expand to its raw value.
+        // but not multiple parameters
+
+        if (properties?.Count() == 1)
+            return new JsonFsGetItemPropertyParameters();
+
+        return null;
+    }
+
+    PSObject IGetItemProperty.GetItemProperty(ICmdletProvider provider, IEnumerable<string>? properties)
+    {
+        return provider.DynamicParameters switch
+        {
+            JsonFsGetItemPropertyParameters { ExpandValue.IsPresent: true } => this.GetItemPropertyValue(provider, properties),
+
+            _ => this.GetItemPropertyAsPsObject(provider, properties)
+        };
+    }
+
+    private PSObject GetItemPropertyAsPsObject(ICmdletProvider provider, IEnumerable<string>? propertyNames)
+    {
+        if (propertyNames is null || !propertyNames.Any())
+            return this.ItemAsJsonFsItem(provider);
+
+        return this.ItemAsJsonFsItem(provider, this.ValueProperties().Where(p => propertyNames.Contains(p.Name)));
+    }
+
+    private PSObject? GetItemPropertyValue(ICmdletProvider provider, IEnumerable<string> properties)
+    {
+        ArgumentNullException.ThrowIfNull(properties);
+
+        var jvalue = this.ValueProperty(properties.First())!.Value as JValue;
+
+        if (jvalue is null)
+            return null;
+
+        return PSObject.AsPSObject(jvalue.Value);
+    }
+
+    #endregion IGetItemProperty
+
     #region ISetItemProperty
 
     void ISetItemProperty.SetItemProperty(ICmdletProvider provider, PSObject properties)
     {
         foreach (var p in properties.Properties)
         {
-            // check fo all value properties if the< alread exist.
+            // check for all value properties if the< already exist.
             // if not throw an error if the creation isn't forced.
             IfValueSemantic(p.Value, then: _ =>
             {

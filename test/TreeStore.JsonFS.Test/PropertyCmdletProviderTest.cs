@@ -3,7 +3,7 @@
 [Collection(nameof(PowerShell))]
 public class PropertyCmdletProviderTest : PowerShellTestBase
 {
-    #region Get-ItemProperty -Path -Name
+    #region Get-ItemProperty -Path -Name -ExpandValue
 
     [Fact]
     public void Powershell_gets_item_property()
@@ -39,7 +39,35 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         Assert.DoesNotContain(result.Properties, p => p.Name == "value_skipped");
     }
 
-    #endregion Get-ItemProperty -Path -Name
+    [Fact]
+    public void Powershell_gets_item_property_value()
+    {
+        // ARRANGE
+        var root = this.ArrangeFileSystem(new JObject
+        {
+            ["value"] = 1,
+            ["value_skipped"] = 2,
+            ["array"] = new JArray(1, 2)
+        });
+
+        // ACT
+        // fetch only one parameter, but expand value
+        var result = this.PowerShell
+            .AddCommand("Get-ItemProperty")
+            .AddParameter("Path", @"test:\")
+            .AddParameter("Name", new[] { "value" })
+            .AddParameter("ExpandValue")
+            .Invoke()
+            .Single();
+
+        // ASSERT
+        // an object having the requested properties only was returned
+        Assert.False(this.PowerShell.HadErrors);
+        Assert.IsType<long>(result.BaseObject);
+        Assert.Equal(1L, (long)result.BaseObject);
+    }
+
+    #endregion Get-ItemProperty -Path -Name -ExpandValue
 
     #region Clear-ItemProperty -Path -Name
 

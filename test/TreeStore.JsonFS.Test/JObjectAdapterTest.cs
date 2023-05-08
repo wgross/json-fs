@@ -11,12 +11,12 @@ public class JObjectAdapterTest : IDisposable
 {
     private readonly MockRepository mocks = new(MockBehavior.Strict);
     private readonly Mock<ICmdletProvider> providerMock;
-    private readonly Mock<IDisposable> disopsableMock;
+    private readonly Mock<IDisposable> disposableMock;
 
     public JObjectAdapterTest()
     {
         this.providerMock = this.mocks.Create<ICmdletProvider>();
-        this.disopsableMock = this.mocks.Create<IDisposable>();
+        this.disposableMock = this.mocks.Create<IDisposable>();
     }
 
     public void Dispose() => this.mocks.VerifyAll();
@@ -26,9 +26,9 @@ public class JObjectAdapterTest : IDisposable
         this.providerMock
             .As<IJsonFsRootNodeModification>()
             .Setup(p => p.BeginModify())
-            .Returns(this.disopsableMock.Object);
+            .Returns(this.disposableMock.Object);
 
-        this.disopsableMock
+        this.disposableMock
             .Setup(d => d.Dispose());
     }
 
@@ -1771,6 +1771,122 @@ public class JObjectAdapterTest : IDisposable
     }
 
     #endregion IClearItemProperty
+
+    [Fact]
+    public void GetItemPropertyParameters_ignores_multiple_properties()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = 1
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        // ACT
+        var result = (JsonFsGetItemPropertyParameters)rootNode.GetRequiredService<IGetItemProperty>()
+            .GetItemPropertyParameters(new[] { "data1", "data2" })!;
+
+        // ASSERT
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetItemPropertyParameters_allows_expand_value()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = 1
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        // ACT
+        var result = (JsonFsGetItemPropertyParameters)rootNode.GetRequiredService<IGetItemProperty>()
+            .GetItemPropertyParameters(new[] { "data1" })!;
+
+        // ASSERT
+        Assert.IsType<JsonFsGetItemPropertyParameters>(result);
+    }
+
+    [Fact]
+    public void GetItemProperty_gets_selected_property()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = 1
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        this.providerMock
+          .Setup(p => p.DynamicParameters)
+          .Returns(null);
+
+        // ACT
+        var result = rootNode.GetRequiredService<IGetItemProperty>().GetItemProperty(this.providerMock.Object, new[] { "data1" });
+
+        // ASSERT
+        Assert.IsType<JsonFsItem>(result.BaseObject);
+        Assert.True(result.PropertyIsNull("data2"));
+        Assert.Equal("text", result.Property<string>("data1"));
+        Assert.Equal(new[] { "data1" }, result.Property<string[]>("PropertyNames"));
+    }
+
+    [Fact]
+    public void GetItemProperty_gets_selected_property_value()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = 1
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        var parameters = (JsonFsGetItemPropertyParameters)rootNode.GetRequiredService<IGetItemProperty>()
+            .GetItemPropertyParameters(new[] { "data2" })!;
+
+        parameters.ExpandValue = true;
+
+        this.providerMock
+            .Setup(p => p.DynamicParameters)
+            .Returns(parameters);
+
+        // ACT
+        var result = rootNode.GetRequiredService<IGetItemProperty>().GetItemProperty(this.providerMock.Object, new[] { "data2" });
+
+        // ASSERT
+        Assert.IsType<long>(result.BaseObject);
+        Assert.Equal(1L, (long)result.BaseObject);
+    }
+
+    [Fact]
+    public void GetItemProperty_gets_all_properties()
+    {
+        // ARRANGE
+        var root = new JObject
+        {
+            ["data1"] = "text",
+            ["data2"] = 1
+        };
+        var rootNode = new JObjectAdapter(root);
+
+        this.providerMock
+          .Setup(p => p.DynamicParameters)
+          .Returns(null);
+
+        // ACT
+        var result = rootNode.GetRequiredService<IGetItemProperty>().GetItemProperty(this.providerMock.Object, null);
+
+        // ASSERT
+        Assert.IsType<JsonFsItem>(result.BaseObject);
+        Assert.Equal(1L, result.Property<long>("data2"));
+        Assert.Equal("text", result.Property<string>("data1"));
+        Assert.Equal(new[] { "data1", "data2" }, result.Property<string[]>("PropertyNames"));
+    }
 
     #region ISetItemProperty
 

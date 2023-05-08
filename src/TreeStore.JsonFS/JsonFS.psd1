@@ -1,6 +1,6 @@
 @{
     RootModule = 'TreeStore.JsonFS.dll'
-    ModuleVersion = '0.7.0'
+    ModuleVersion = '0.8.0'
     GUID = '27ca097c-25c2-465e-8e93-b46a602cf9cd'
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
@@ -32,6 +32,8 @@ v0.6.1:
   - replaces JSON.Net schema with NJsonSchema b/c of licensing
 v0.7.0:
   - Set-Item and New-Item accept class instances (internal conversion to PSObject)
+v0.8.0:
+  - Get-ItemProperty may expand single property value.
 '
         }
     }
