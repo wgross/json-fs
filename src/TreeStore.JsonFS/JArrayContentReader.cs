@@ -1,15 +1,9 @@
 ﻿namespace TreeStore.JsonFS;
 
-public class JArrayContentReader : IContentReader
+public class JArrayContentReader(JArray jobject) : IContentReader
 {
-    private readonly JArray jArray;
-    private int currentPosition;
-
-    public JArrayContentReader(JArray jobject)
-    {
-        this.jArray = jobject;
-        this.currentPosition = 0;
-    }
+    private readonly JArray jArray = jobject;
+    private int currentPosition = 0;
 
     public void Close()
     {

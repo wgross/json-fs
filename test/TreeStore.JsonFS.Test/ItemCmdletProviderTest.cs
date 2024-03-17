@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS.Test;
+﻿using System.Management.Automation;
+
+namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ItemCmdletProviderTest : PowerShellTestBase

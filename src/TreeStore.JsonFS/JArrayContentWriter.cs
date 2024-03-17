@@ -1,16 +1,10 @@
 ﻿namespace TreeStore.JsonFS;
 
-public sealed class JArrayContentWriter : IContentWriter
+public sealed class JArrayContentWriter(ICmdletProvider provider, JArrayAdapter jArrayAdapter) : IContentWriter
 {
-    private readonly JArrayAdapter adapter;
-    private readonly ICmdletProvider provider;
+    private readonly JArrayAdapter adapter = jArrayAdapter;
+    private readonly ICmdletProvider provider = provider;
     private readonly List<JObject> newArrayItems = new();
-
-    public JArrayContentWriter(ICmdletProvider provider, JArrayAdapter jArrayAdapter)
-    {
-        this.provider = provider;
-        this.adapter = jArrayAdapter;
-    }
 
     public void Close()
     {

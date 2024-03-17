@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Management.Automation;
 
 namespace TreeStore.JsonFS.Test;
 

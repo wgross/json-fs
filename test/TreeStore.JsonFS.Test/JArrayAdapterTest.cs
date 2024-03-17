@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Collections.Generic;
+using System.Management.Automation;
 using TreeStore.Core.Capabilities;
 using TreeStore.Core.Providers;
 

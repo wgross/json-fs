@@ -1,4 +1,6 @@
-﻿namespace TreeStore.JsonFS.Test;
+﻿using System.Management.Automation;
+
+namespace TreeStore.JsonFS.Test;
 
 [Collection(nameof(PowerShell))]
 public class ContainerCmdletProviderTest : PowerShellTestBase
@@ -944,6 +946,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         {
         });
 
+        
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Copy-Item")

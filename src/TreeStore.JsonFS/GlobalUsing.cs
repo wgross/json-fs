@@ -11,7 +11,6 @@ global using Microsoft.Extensions.DependencyInjection;
 global using System.Management.Automation;
 global using System.Management.Automation.Provider;
 
-
 // main dependency: Newtonsoft.Json is used for JSON editing
 global using Newtonsoft.Json;
 global using Newtonsoft.Json.Linq;
@@ -20,6 +19,3 @@ global using Newtonsoft.Json.Linq;
 global using TreeStore.Core.Capabilities;
 global using TreeStore.Core.Providers;
 global using TreeStore.Core.Nodes;
-
-
-

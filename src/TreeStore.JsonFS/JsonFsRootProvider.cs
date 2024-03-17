@@ -213,7 +213,7 @@ public sealed class JsonFsRootProvider
         if (this.cachedJsonSchema is not null)
             return this.cachedJsonSchema;
 
-        // the JSON scahme was given as a parameter to the drive
+        // the JSON schema was given as a parameter to the drive
         // try this first
 
         if (this.jsonSchemaFile is not null)
@@ -224,8 +224,8 @@ public sealed class JsonFsRootProvider
                 this.cachedJsonSchema = this.ReadJsonSchemaFile(this.jsonSchemaFile);
         }
 
-        // the JSON schame might by a property in the root object
-        // thsi may ba an http or file scheme.
+        // the JSON schema might by a property in the root object
+        // this may be a http or file scheme.
 
         var root = this.GetRootJObject();
 

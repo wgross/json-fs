@@ -2,7 +2,7 @@
 
 namespace TreeStore.JsonFS;
 
-public sealed class JArrayAdapter : JAdapterBase,
+public sealed class JArrayAdapter(JArray payload) : JAdapterBase,
     // ItemCmdletProvider
     IGetItem, ISetItem,
     // ContainerCmdletProvider
@@ -11,9 +11,7 @@ public sealed class JArrayAdapter : JAdapterBase,
     // ICopyChildItem
     IGetItemContent, ISetChildItemContent, IClearItemContent
 {
-    internal readonly JArray payload;
-
-    public JArrayAdapter(JArray payload) => this.payload = payload;
+    internal readonly JArray payload = payload;
 
     #region IGetItem
 

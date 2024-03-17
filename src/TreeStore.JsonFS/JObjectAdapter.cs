@@ -4,7 +4,7 @@
 /// Implements an adapter between TreeStores ProviderNode and <see cref="Newtonsoft.Json.Linq.JObject"/>.
 /// It implements <see cref="IServiceProvider"/> as a generic interface to provider the TreeStore node capabilities.
 /// </summary>
-public sealed class JObjectAdapter : JAdapterBase,
+public sealed class JObjectAdapter(JObject payload) : JAdapterBase,
     // ItemCmdletProvider
     IGetItem, ISetItem, IClearItem,
     // ContainerCmdletProvider
@@ -16,9 +16,7 @@ public sealed class JObjectAdapter : JAdapterBase,
     // IContentProvider
     IGetItemContent, ISetChildItemContent, IClearItemContent
 {
-    internal readonly JObject payload;
-
-    public JObjectAdapter(JObject payload) => this.payload = payload;
+    internal readonly JObject payload = payload;
 
     #region Query properties holding value semantics
 

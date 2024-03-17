@@ -1,15 +1,8 @@
 ﻿namespace TreeStore.JsonFS;
 
-public sealed class JsonFsDriveInfo : Core.Providers.TreeStoreDriveInfoBase
+public sealed class JsonFsDriveInfo(JsonFsRootProvider rootNodeProvider, PSDriveInfo driveInfo) : TreeStoreDriveInfoBase(driveInfo)
 {
-    public JsonFsDriveInfo(JsonFsRootProvider rootNodeProvider, PSDriveInfo driveInfo)
-        : base(driveInfo)
-    {
-        this.RootNodeProvider = rootNodeProvider;
-    }
-
-    internal JsonFsRootProvider RootNodeProvider { get; }
+    internal JsonFsRootProvider RootNodeProvider { get; } = rootNodeProvider;
 
     protected override IServiceProvider GetRootNodeProvider() => this.RootNodeProvider.GetRootNodeServieProvider();
-
 }
