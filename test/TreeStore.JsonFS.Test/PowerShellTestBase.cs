@@ -52,9 +52,9 @@ public class PowerShellTestBase : IDisposable
     }
 
     /// <summary>
-    /// Loads the module from the tests bin directory and creates a drive 'test'.
+    /// Loads the module from the tests bin directory.
     /// </summary>
-    protected void ArrangeFileSystem(string name, string path)
+    protected void ArrangeFileSystemProvider()
     {
         this.PowerShell.Commands.Clear();
         this.PowerShell
@@ -63,7 +63,18 @@ public class PowerShellTestBase : IDisposable
             .AddStatement()
             .AddCommand("Import-Module")
             .AddArgument("./JsonFS.psd1")
-            .AddStatement()
+            .Invoke();
+        this.PowerShell.Commands.Clear();
+    }
+
+    /// <summary>
+    /// Loads the module from the tests bin directory and creates a drive 'test'.
+    /// </summary>
+    protected void ArrangeFileSystem(string name, string path)
+    {
+        this.ArrangeFileSystemProvider();
+
+        this.PowerShell
             .AddCommand("New-PSDrive")
             .AddParameter("PSProvider", "JsonFS")
             .AddParameter("Name", name)
@@ -72,7 +83,7 @@ public class PowerShellTestBase : IDisposable
         this.PowerShell.Commands.Clear();
     }
 
-    public JObject ArrangeFileSystem(JObject payload, JsonSchema schema) 
+    public JObject ArrangeFileSystem(JObject payload, JsonSchema schema)
         => this.ArrangeFileSystem("test", this.JsonFilePath, payload, this.JsonSchemaFilePath, schema);
 
     private JObject ArrangeFileSystem(string name, string jsonFilePath, JObject payload, string jsonSchemaFilePath, JsonSchema schema)

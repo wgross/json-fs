@@ -36,6 +36,7 @@ v0.8.0:
   - Get-ItemProperty may expand single property value.
 v0.9.0:
   - Fixes copy/move between two JsonFS drives
+  '
         }
     }
 }

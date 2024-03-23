@@ -50,6 +50,78 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
     #endregion drive:\
 
+    #region New-PSDrive -Root -PSProvider
+
+    [Fact]
+    public void Powershell_creates_underlying_JSON_file_and_reads_root_node()
+    {
+        // ARRANGE
+        this.ArrangeFileSystemProvider();
+
+        var fileName = this.JsonFilePath;
+
+        this.PowerShell.Commands.Clear();
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("New-PsDrive")
+                .AddParameter("PSProvider", "JsonFS")
+                .AddParameter("Name", @"test")
+                .AddParameter("Root", fileName)
+                .AddParameter("Force")
+            .AddStatement()
+                .AddCommand("Get-Item")
+                    .AddParameter("Path", @"test:\")
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.False(this.PowerShell.HadErrors);
+
+        var psdrive = result[0];
+
+        Assert.IsType<JsonFsDriveInfo>(psdrive.BaseObject);
+        Assert.Equal("test", psdrive.Property<string>("Name"));
+        Assert.Equal("JsonFS", psdrive.Property<ProviderInfo>("Provider").Name);
+
+        var psobject = result[1];
+
+        Assert.IsType<JsonFsItem>(psobject.BaseObject);
+        Assert.Equal("", psobject.Property<string>("Name"));
+        Assert.Equal("test:", psobject.Property<string>("PSChildName"));
+        Assert.True(psobject.Property<bool>("PSIsContainer"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+        Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
+        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+    }
+
+    [Fact]
+    public void Powershell_rejects_drive_if_file_is_missing()
+    {
+        // ARRANGE
+        this.ArrangeFileSystemProvider();
+
+        var fileName = this.JsonFilePath;
+
+        this.PowerShell.Commands.Clear();
+
+        // ACT
+        var result = this.PowerShell
+            .AddCommand("New-PsDrive")
+                .AddParameter("PSProvider", "JsonFS")
+                .AddParameter("Name", @"test")
+                .AddParameter("Root", fileName)
+            .Invoke()
+            .ToArray();
+
+        // ASSERT
+        Assert.True(this.PowerShell.HadErrors);
+        Assert.Empty(result);
+    }
+
+    #endregion New-PSDrive -Force
+
     #region Get-Item -Path
 
     [Fact]

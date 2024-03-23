@@ -14,6 +14,12 @@ public partial class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFs
         // if the path couldn't be resolved throw
         var jsonFilePath = this.SessionState.Path.GetUnresolvedProviderPathFromPSPath(drive.Root);
 
+        // if force is given create the file with a default content first.
+        if (this.DynamicParameters is JsonFsNewDriveParameters { Force: { IsPresent: true } })
+            if (!File.Exists(jsonFilePath))
+                File.WriteAllText(jsonFilePath, "{}");
+
+        // Evaluate if there is a JSON schema given to check the JSON content against.
         var jsonSchemaPath = this.DynamicParameters switch
         {
             JsonFsNewDriveParameters { JsonSchema: not null } newDriveParameters
