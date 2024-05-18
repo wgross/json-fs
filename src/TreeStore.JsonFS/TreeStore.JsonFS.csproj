@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	  <LangVersion>latest</LangVersion>
-	  <VersionPrefix>0.9.0</VersionPrefix>
+	  <VersionPrefix>0.9.1</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,8 +16,8 @@
 
   <ItemGroup>
     <!-- Either use nuget package or submodule -->
-    <!--<PackageReference Include="TreeStore.Core" Version="0.5.1" />-->
-    <ProjectReference Include="..\..\submodules\TreeStore.Core\src\TreeStore.Core\TreeStore.Core.csproj" />
+    <PackageReference Include="TreeStore.Core" Version="0.6.0" />
+    <!--<ProjectReference Include="..\..\submodules\TreeStore.Core\src\TreeStore.Core\TreeStore.Core.csproj" />-->
   </ItemGroup>
 
   <ItemGroup>

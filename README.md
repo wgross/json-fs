@@ -4,7 +4,7 @@ Mounts an existing JSON file as PowerShell drive for editing with the PowerShell
 
 ## Install from PowerShell Gallery
 
-The current version of [JsonFs](https://www.powershellgallery.com/packages/JsonFS) can be downloaded form PowerShell Gallery or install with a PowerShellGet command:
+The current version of [JsonFS](https://www.powershellgallery.com/packages/JsonFS) can be downloaded form PowerShell Gallery or install with a PowerShellGet command:
 
 ```PowerShell
 Install-Module JsonFS
@@ -30,8 +30,8 @@ It stores provides directory aliases in a json file.
 To mount a json file `test.json` use the command:
 
 ```powershell
-Import-Module TreeStore.JsonFs
-New-PSDrive -PSProvider "JsonFs" -Name json -Root "./test.json"
+Import-Module TreeStore.JsonFS
+New-PSDrive -PSProvider "JsonFS" -Name json -Root "./test.json"
 ```
 
 The provider won't create the JSON file nor will it create missing directories in the `Root` path.
@@ -122,11 +122,11 @@ Any-Powershell-Function @parameters
 
 ### Working with JSON Schemas
 
-JsonFs supports JSON Schema validation before writing changes nack to the JSON file.
+JsonFS supports JSON Schema validation before writing changes nack to the JSON file.
 A Schema may be supplied either by a parameter while drive creation or from with the JSON file.
 
 ```PowerShell
-New-PSDrive -PSProvider "JsonFs" -Name json -Root "./test.json" -JsonSchema ./test-schema.json
+New-PSDrive -PSProvider "JsonFS" -Name json -Root "./test.json" -JsonSchema ./test-schema.json
 ```
 
 From within the json file the `Uri` must ether be a rooted `file:` scheme or an web address using `http:` or `https:`.

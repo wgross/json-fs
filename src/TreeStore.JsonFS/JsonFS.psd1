@@ -1,6 +1,6 @@
 @{
     RootModule = 'TreeStore.JsonFS.dll'
-    ModuleVersion = '0.9.0'
+    ModuleVersion = '0.9.1'
     GUID = '27ca097c-25c2-465e-8e93-b46a602cf9cd'
     Author = 'github.com/wgross'
     Copyright = '(c) github.com/wgross. All rights reserved.'
@@ -10,7 +10,7 @@
         PSData = @{
             ProjectUri = 'https://github.com/wgross/json-fs'
             Tags = @('PSEdition_Core','json','Provider')
-            RelaseNodes = '
+            RelaseNotes = '
 v0.2.0: Support for Set-ItemContent            
 v0.3.0: Create new node with Set-ItemContent
 - base object JsonFsItem having properties Name and PropertyNames
@@ -36,6 +36,8 @@ v0.8.0:
   - Get-ItemProperty may expand single property value.
 v0.9.0:
   - Fixes copy/move between two JsonFS drives
+V0.9.1:
+  - Fixes for using in Linux
   '
         }
     }
