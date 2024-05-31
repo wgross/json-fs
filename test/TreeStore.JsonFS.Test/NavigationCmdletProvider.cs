@@ -21,11 +21,11 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child2\child1")
+            .AddParameter("Path", @"test:/child2\child1")
             .Invoke()
             .Single();
 
@@ -76,11 +76,11 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child2\child1")
+            .AddParameter("Path", @"test:/child2\child1")
             .Invoke()
             .Single();
 
@@ -130,11 +130,11 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .Invoke()
             .ToArray();
 
@@ -177,8 +177,8 @@ public class NavigationCmdletProvider : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Move-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test-2:\")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test-2:/")
             .Invoke()
             .ToArray();
 
@@ -221,11 +221,11 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2\new-name")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2\new-name")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child2\new-name")
+            .AddParameter("Path", @"test:/child2\new-name")
             .Invoke()
             .Single();
 
@@ -270,8 +270,8 @@ public class NavigationCmdletProvider : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Move-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test-2:\new")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test-2:/new")
             .Invoke()
             .ToArray();
 
@@ -311,8 +311,8 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
     //    // ACT
     //    this.PowerShell.AddCommand("Move-Item")
-    //        .AddParameter("Path", @"test:\child1")
-    //        .AddParameter("Destination", @"test:\child2\new-name")
+    //        .AddParameter("Path", @"test:/child1")
+    //        .AddParameter("Destination", @"test:/child2\new-name")
     //        .Invoke()
     //        .ToArray();
 
@@ -336,8 +336,8 @@ public class NavigationCmdletProvider : PowerShellTestBase
 
     //    // ACT
     //    this.PowerShell.AddCommand("Move-Item")
-    //        .AddParameter("Path", @"test:\child1")
-    //        .AddParameter("Destination", @"test:\child2\child3\new-name")
+    //        .AddParameter("Path", @"test:/child1")
+    //        .AddParameter("Destination", @"test:/child2\child3\new-name")
     //        .Invoke()
     //        .ToArray();
 

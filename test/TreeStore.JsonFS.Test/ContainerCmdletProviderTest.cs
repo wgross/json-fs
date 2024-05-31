@@ -8,7 +8,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     #region Get-ChildItem -Path -Recurse
 
     [Fact]
-    public void Powershell_reads_roots_childnodes()
+    public void PowerShell_reads_roots_childnodes()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(DefaultRoot());
@@ -25,23 +25,34 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         var psobject = result[0];
 
-        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal("object", psobject.Property<string>("PSChildName"));
+            Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal("object", psobject.Property<string>("PSChildName"));
+            Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
-    public void Powershell_reads_roots_childnodes_names()
+    public void PowerShell_reads_roots_childnodes_names()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(DefaultRoot());
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-ChildItem")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name")
             .Invoke()
             .ToArray();
@@ -54,16 +65,25 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         Assert.IsType<string>(psobject.ImmediateBaseObject);
         Assert.Equal("object", psobject.ImmediateBaseObject as string);
-        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
-    public void Powershell_retrieves_roots_childnodes_recursive()
+    public void PowerShell_retrieves_roots_childnodes_recursive()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject
@@ -79,7 +99,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-ChildItem")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Recurse")
             .Invoke()
             .ToArray();
@@ -90,25 +110,45 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         var psobject = result[0];
 
-        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+
+        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSPath"));
+        });
 
         psobject = result[1];
 
-        Assert.Equal("grandchild", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object\grandchild", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+        Assert.Equal("grandchild", psobject.Property<string>("PSChildName"));
+        OnWindows(() =>
+
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object\grandchild", psobject.Property<string>("PSPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object/grandchild", psobject.Property<string>("PSPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSParentPath"));
+        });
     }
 
     [Fact]
-    public void Powershell_retrieves_roots_childnodes_recursive_upto_depth()
+    public void PowerShell_retrieves_roots_childnodes_recursive_upto_depth()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject
@@ -125,7 +165,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-ChildItem")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Recurse")
             .AddParameter("Depth", 1) // only children, no grandchildren
             .Invoke()
@@ -137,21 +177,40 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         var psobject = result[0];
 
-        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        Assert.Equal("object", psobject.Property<string>("PSChildName"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSPath"));
+        });
 
         psobject = result[1];
 
-        Assert.Equal("grandchild", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object\grandchild", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+        Assert.Equal("grandchild", psobject.Property<string>("PSChildName"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:\object\grandchild", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:/object/grandchild", psobject.Property<string>("PSPath"));
+        });
     }
 
     #endregion Get-ChildItem -Path -Recurse
@@ -159,14 +218,14 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     #region Remove-Item -Path -Recurse
 
     [Fact]
-    public void Powershell_removes_root_child_node()
+    public void PowerShell_removes_root_child_node()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(DefaultRoot());
 
         // ACT
         var _ = this.PowerShell.AddCommand("Remove-Item")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .Invoke()
             .ToArray();
 
@@ -180,14 +239,14 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_removes_root_child_node_and_validates()
+    public async Task PowerShell_removes_root_child_node_and_validates()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(DefaultRoot(), await this.DefaultRootSchema());
 
         // ACT
         var _ = this.PowerShell.AddCommand("Remove-Item")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .Invoke()
             .ToArray();
 
@@ -201,7 +260,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_removes_root_child_node_and_invalidates()
+    public async Task PowerShell_removes_root_child_node_and_invalidates()
     {
         // ARRANGE
         var jsonSchema = await this.DefaultRootSchema();
@@ -214,7 +273,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("Remove-Item")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .Invoke()
             .ToArray());
 
@@ -226,7 +285,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_removes_root_child_node_fails_if_node_has_children()
+    public void PowerShell_removes_root_child_node_fails_if_node_has_children()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject
@@ -240,7 +299,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = Assert.Throws<CmdletInvocationException>(() => this.PowerShell
             .AddCommand("Remove-Item")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .AddParameter("Recurse", false)
             .Invoke());
 
@@ -255,7 +314,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_removes_root_child_node_recursive()
+    public void PowerShell_removes_root_child_node_recursive()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject
@@ -268,7 +327,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var _ = this.PowerShell.AddCommand("Remove-Item")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .AddParameter("Recurse", true)
             .Invoke()
             .ToArray();
@@ -287,7 +346,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     #region New-Item -Path -ItemType -Value
 
     [Fact]
-    public void Powershell_creates_child_item_from_JObject()
+    public void PowerShell_creates_child_item_from_JObject()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject());
@@ -298,7 +357,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("Value", child)
             .Invoke()
             .ToArray();
@@ -308,12 +367,21 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
-        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/child1", psobject.Property<string>("PSPath"));
+        });
 
         this.AssertJsonFileContent(r =>
         {
@@ -323,7 +391,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_creates_child_item_from_JObject_and_validates()
+    public async Task PowerShell_creates_child_item_from_JObject_and_validates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -345,7 +413,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("Value", child)
             .Invoke()
             .ToArray();
@@ -355,12 +423,21 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
-        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/child1", psobject.Property<string>("PSPath"));
+        });
 
         this.AssertJsonFileContent(r =>
         {
@@ -370,7 +447,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_creates_child_item_from_JObject_and_invalidates()
+    public async Task PowerShell_creates_child_item_from_JObject_and_invalidates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -395,7 +472,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("New-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("Value", child)
             .Invoke()
             .ToArray());
@@ -409,7 +486,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_creates_child_item_from_object_and_validates()
+    public async Task PowerShell_creates_child_item_from_object_and_validates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -431,7 +508,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("Value", child)
             .Invoke()
             .ToArray();
@@ -441,12 +518,20 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         var psobject = result.Single();
 
-        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+        Assert.Equal("child1", psobject.Property<string>("PSChildName"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/child1", psobject.Property<string>("PSPath"));
+        });
 
         this.AssertJsonFileContent(r =>
         {
@@ -456,14 +541,14 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_creating_child_fails_with_non_JObject()
+    public void PowerShell_creating_child_fails_with_non_JObject()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject());
 
         // ACT
         var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("New-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("Value", "value")
             .Invoke());
 
@@ -473,7 +558,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_creates_child_item_from_Hashtable()
+    public void PowerShell_creates_child_item_from_Hashtable()
     {
         // ARRANGE
         var root = this.ArrangeFileSystem(new JObject());
@@ -485,7 +570,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("Value", child)
             .Invoke()
             .ToArray();
@@ -497,10 +582,18 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         Assert.Equal("child1", psobject.Property<string>("PSChildName"));
         Assert.True(psobject.Property<bool>("PSIsContainer"));
-        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+        Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\child1", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/child1", psobject.Property<string>("PSPath"));
+        });
 
         this.AssertJsonFileContent(r =>
         {
@@ -518,7 +611,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     #region Rename-Item -Path -NewName
 
     [Fact]
-    public void Powershell_renames_childitem()
+    public void PowerShell_renames_childitem()
     {
         // ARRANGE
         var child = new JObject();
@@ -529,7 +622,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var _ = this.PowerShell.AddCommand("Rename-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("NewName", "newName")
             .Invoke()
             .ToArray();
@@ -545,7 +638,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_renames_childitem_and_validates()
+    public async Task PowerShell_renames_childitem_and_validates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -570,7 +663,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var _ = this.PowerShell.AddCommand("Rename-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("NewName", "newName")
             .Invoke()
             .ToArray();
@@ -586,7 +679,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_renames_childitem_and_invalidates()
+    public async Task PowerShell_renames_childitem_and_invalidates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -612,7 +705,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("Rename-Item")
-            .AddParameter("Path", @"test:\child1")
+            .AddParameter("Path", @"test:/child1")
             .AddParameter("NewName", "newName")
             .Invoke()
             .ToArray());
@@ -634,7 +727,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     #region Copy-Item -Path -Destination -Recurse
 
     [Fact]
-    public void Powershell_copies_child()
+    public void PowerShell_copies_child()
     {
         // ARRANGE
         var child1 = new JObject()
@@ -652,8 +745,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .Invoke()
             .ToArray();
 
@@ -675,7 +768,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_copies_child_and_validates()
+    public async Task PowerShell_copies_child_and_validates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -713,8 +806,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .Invoke()
             .ToArray();
 
@@ -736,7 +829,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public async Task Powershell_copies_child_and_invalidates()
+    public async Task PowerShell_copies_child_and_invalidates()
     {
         // ARRANGE
         var jsonSchema = await JsonSchema.FromJsonAsync("""
@@ -771,8 +864,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var result = Assert.Throws<CmdletProviderInvocationException>(() => this.PowerShell.AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .Invoke()
             .ToArray());
 
@@ -785,7 +878,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_to_second_jsonfs()
+    public void PowerShell_copies_child_to_second_jsonfs()
     {
         // ARRANGE
         var secondfile = $"{Guid.NewGuid()}.json";
@@ -810,8 +903,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // copy child1 under child2
         var _ = this.PowerShell
             .AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test-2:\")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test-2:/")
             .Invoke()
             .ToArray();
 
@@ -830,7 +923,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_item_with_new_name_to_second_jsonfs()
+    public void PowerShell_copies_child_item_with_new_name_to_second_jsonfs()
     {
         // ARRANGE
         var secondfile = $"{Guid.NewGuid()}.json";
@@ -855,8 +948,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // copy child1 under child2
         var _ = this.PowerShell
             .AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test-2:\new")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test-2:/new")
             .Invoke()
             .ToArray();
 
@@ -875,7 +968,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_item_recursive()
+    public void PowerShell_copies_child_item_recursive()
     {
         // ARRANGE
         var child1 = new JObject()
@@ -896,8 +989,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test:\child2")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test:/child2")
             .AddParameter("Recurse")
             .Invoke()
             .ToArray();
@@ -922,7 +1015,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_item_recursive_to_second_jsonfs()
+    public void PowerShell_copies_child_item_recursive_to_second_jsonfs()
     {
         // ARRANGE
         var secondfile = $"{Guid.NewGuid()}.json";
@@ -946,12 +1039,11 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         {
         });
 
-        
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test-2:\")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test-2:/")
             .AddParameter("Recurse")
             .Invoke()
             .ToArray();
@@ -973,7 +1065,7 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
     }
 
     [Fact]
-    public void Powershell_copies_child_item_with_new_name_recursive_to_second_jsonfs()
+    public void PowerShell_copies_child_item_with_new_name_recursive_to_second_jsonfs()
     {
         // ARRANGE
         var secondfile = $"{Guid.NewGuid()}.json";
@@ -1000,8 +1092,8 @@ public class ContainerCmdletProviderTest : PowerShellTestBase
         // ACT
         // copy child1 under child2
         var _ = this.PowerShell.AddCommand("Copy-Item")
-            .AddParameter("Path", @"test:\child1")
-            .AddParameter("Destination", @"test-2:\new")
+            .AddParameter("Path", @"test:/child1")
+            .AddParameter("Destination", @"test-2:/new")
             .AddParameter("Recurse")
             .Invoke()
             .ToArray();

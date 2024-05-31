@@ -23,7 +23,7 @@
   
   <ItemGroup>
     <!-- Use PowerShell from Nuget Package -->
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.1" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.2" />
     
     <!-- Use PowerShell from Submodule -->
     <!--

@@ -33,14 +33,14 @@ public partial class JsonFsCmdletProvider : TreeStoreCmdletProviderBase, IJsonFs
             (not null, null) => new JsonFsDriveInfo(JsonFsRootProvider.FromFile(jsonFilePath), new PSDriveInfo(
                name: drive.Name,
                provider: drive.Provider,
-               root: $@"{drive.Name}:\",
-               description: drive.Description,
-               credential: drive.Credential)),
+               root: $@"{drive.Name}:{Path.DirectorySeparatorChar}",
+                   description: drive.Description,
+                   credential: drive.Credential)),
 
             (not null, not null) => new JsonFsDriveInfo(JsonFsRootProvider.FromFileAndSchema(jsonFilePath, jsonSchemaPath), new PSDriveInfo(
                name: drive.Name,
                provider: drive.Provider,
-               root: $@"{drive.Name}:\",
+               root: $@"{drive.Name}:{Path.DirectorySeparatorChar}",
                description: drive.Description,
                credential: drive.Credential)),
 

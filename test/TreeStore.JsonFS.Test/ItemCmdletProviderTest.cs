@@ -5,7 +5,7 @@ namespace TreeStore.JsonFS.Test;
 [Collection(nameof(PowerShell))]
 public class ItemCmdletProviderTest : PowerShellTestBase
 {
-    #region drive:\
+    #region drive:/
 
     [Fact]
     public void PowerShell_creates_set_location_func_with_drive_name()
@@ -15,7 +15,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Content")
-            .AddParameter("Path", @"Function:\test:")
+            .AddParameter("Path", @"Function:/test:")
             .Invoke()
             .Single();
 
@@ -39,7 +39,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         this.PowerShell.Commands.Clear();
 
         var result = this.PowerShell.AddCommand("Test-Path")
-            .AddParameter("Path", @"Function:\test:")
+            .AddParameter("Path", @"Function:/test:")
             .Invoke()
             .Single();
 
@@ -48,7 +48,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.Equal("False", result.ToString());
     }
 
-    #endregion drive:\
+    #endregion drive:/
 
     #region New-PSDrive -Root -PSProvider
 
@@ -71,7 +71,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
                 .AddParameter("Force")
             .AddStatement()
                 .AddCommand("Get-Item")
-                    .AddParameter("Path", @"test:\")
+                    .AddParameter("Path", @"test:/")
             .Invoke()
             .ToArray();
 
@@ -92,8 +92,17 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
         Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
@@ -120,7 +129,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.Empty(result);
     }
 
-    #endregion New-PSDrive -Force
+    #endregion New-PSDrive -Root -PSProvider
 
     #region Get-Item -Path
 
@@ -133,7 +142,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .ToArray();
 
@@ -148,8 +157,17 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
         Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
@@ -162,7 +180,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .ToArray();
 
@@ -175,8 +193,17 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
         Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
@@ -188,7 +215,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .ToArray();
 
@@ -203,8 +230,19 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
         Assert.Equal(string.Empty, psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"test:\", psobject.Property<PSDriveInfo>("PSDrive").Root);
+            Assert.Equal(@"JsonFS\JsonFS::test:\", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"test:/", psobject.Property<PSDriveInfo>("PSDrive").Root);
+            Assert.Equal(@"JsonFS\JsonFS::test:/", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
@@ -218,7 +256,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .Invoke()
             .ToArray();
 
@@ -233,8 +271,17 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
@@ -248,7 +295,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Item")
-            .AddParameter("Path", @"JsonFS\JsonFS::test:\object")
+            .AddParameter("Path", @"JsonFS\JsonFS::test:/object")
             .Invoke()
             .ToArray();
 
@@ -261,7 +308,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.True(psobject.PropertyIsNull("PSDrive"), "No PSDrive when using provider path");
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSPath"));
+        Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSPath"));
         Assert.Equal(@"JsonFS\JsonFS::test:", psobject.Property<string>("PSParentPath"));
     }
 
@@ -279,7 +326,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\object\object")
+            .AddParameter("Path", @"test:/object\object")
             .Invoke()
             .ToArray();
 
@@ -294,8 +341,18 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object\object", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:\object\object", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:/object/object", psobject.Property<string>("PSPath"));
+        });
     }
 
     [Fact]
@@ -309,7 +366,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\object\0")
+            .AddParameter("Path", @"test:/object/0")
             .Invoke()
             .ToArray();
 
@@ -324,8 +381,18 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         Assert.True(psobject.Property<bool>("PSIsContainer"));
         Assert.Equal("test", psobject.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", psobject.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\object\0", psobject.Property<string>("PSPath"));
-        Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\object", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:\object\0", psobject.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/object", psobject.Property<string>("PSParentPath"));
+            Assert.Equal(@"JsonFS\JsonFS::test:/object/0", psobject.Property<string>("PSPath"));
+        });
     }
 
     #endregion Get-Item -Path
@@ -340,7 +407,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Resolve-Path")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -372,11 +439,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .AddParameter("Value", newValue)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .Single();
 
@@ -407,11 +474,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .AddParameter("Value", newValue)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .Single();
 
@@ -467,11 +534,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         // modify the root node with an invalid value
         var result = this.PowerShell.AddCommand("Set-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .AddParameter("Value", newValue)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .Single();
 
@@ -529,11 +596,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         // modify the root node with an invalid value
         var result = this.PowerShell.AddCommand("Set-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .AddParameter("Value", newValue)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .Single();
 
@@ -570,11 +637,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Set-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .AddParameter("Value", newValue)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .Single();
 
@@ -607,11 +674,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .AddParameter("Value", newValue.ToString())
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .Single();
 
@@ -643,10 +710,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Clear-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -684,10 +751,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Clear-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -741,10 +808,10 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Clear-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -773,7 +840,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Test-Path")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .ToArray();
 
@@ -790,7 +857,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Test-Path")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("PathType", "Container")
             .Invoke()
             .ToArray();
@@ -808,7 +875,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Test-Path")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("PathType", "Leaf")
             .Invoke()
             .ToArray();
@@ -826,7 +893,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Test-Path")
-            .AddParameter("Path", @"test:\object")
+            .AddParameter("Path", @"test:/object")
             .Invoke()
             .ToArray();
 
@@ -853,7 +920,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Content")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -883,7 +950,7 @@ public class ItemCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Get-Content")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -914,11 +981,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Set-Content")
-                .AddParameter("Path", @"test:\")
+                .AddParameter("Path", @"test:/")
                     .AddParameter("Value", content.ToString())
             .AddStatement()
                 .AddCommand("Get-Content")
-                    .AddParameter("Path", @"test:\")
+                    .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -967,11 +1034,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Set-Content")
-                .AddParameter("Path", @"test:\")
+                .AddParameter("Path", @"test:/")
                     .AddParameter("Value", content.ToString())
             .AddStatement()
                 .AddCommand("Get-Content")
-                    .AddParameter("Path", @"test:\")
+                    .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -1026,11 +1093,11 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Set-Content")
-                .AddParameter("Path", @"test:\")
+                .AddParameter("Path", @"test:/")
                     .AddParameter("Value", content.ToString())
             .AddStatement()
                 .AddCommand("Get-Content")
-                    .AddParameter("Path", @"test:\")
+                    .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -1064,12 +1131,12 @@ public class ItemCmdletProviderTest : PowerShellTestBase
         });
 
         // ACT
-        // pipe the content of test:\child in test:\new-child
+        // pipe the content of test:/child in test:/new-child
         var result = this.PowerShell
-            .AddScript(@"Get-Content -Path test:\child | Set-Content -Path test:\new-child")
+            .AddScript(@"Get-Content -Path test:/child | Set-Content -Path test:/new-child")
             .AddStatement()
                 .AddCommand("Get-Content")
-                    .AddParameter("Path", @"test:\new-child")
+                    .AddParameter("Path", @"test:/new-child")
             .Invoke()
             .ToArray();
 

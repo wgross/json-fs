@@ -20,7 +20,7 @@ public partial class JsonFsCmdletProvider
 
     private void MoveItemToProvider(string sourcePath, string destination, ProviderQualifiedPath destinationSplitted)
     {
-        var splittedSourcePath = PathTool.Default.SplitProviderQualifiedPath(sourcePath);
+        var splitSourcePath = PathTool.Default.SplitProviderQualifiedPath(sourcePath);
 
         // the destination provider is different from this provider.
         // this has to be implemented specifically: get the drive info
@@ -28,9 +28,9 @@ public partial class JsonFsCmdletProvider
             = this.GetTreeStoreDriveInfo<JsonFsDriveInfo>(destinationSplitted.DriveName)
             ?? throw new InvalidOperationException($"drive(name:{destinationSplitted.DriveName}) doesn't exists");
 
-        var (parentPath, childName) = splittedSourcePath.ParentAndChild;
+        var (parentPath, childName) = splitSourcePath.ParentAndChild;
 
-        var sourceDriveInfo = this.GetTreeStoreDriveInfo<JsonFsDriveInfo>(splittedSourcePath.DriveName);
+        var sourceDriveInfo = this.GetTreeStoreDriveInfo<JsonFsDriveInfo>(splitSourcePath.DriveName);
 
         this.InvokeContainerNodeOrDefault(
             driveInfo: sourceDriveInfo,

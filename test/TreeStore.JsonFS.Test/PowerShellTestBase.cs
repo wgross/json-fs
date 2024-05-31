@@ -25,7 +25,7 @@ public class PowerShellTestBase : IDisposable
             File.Delete(this.JsonFilePath);
     }
 
-    public string JosnFileNme = $"./{Guid.NewGuid()}";
+    public string JsonFileNme = $"./{Guid.NewGuid()}";
 
     public string JsonFilePath = $"./{Guid.NewGuid()}.json";
 
@@ -57,10 +57,14 @@ public class PowerShellTestBase : IDisposable
     protected void ArrangeFileSystemProvider()
     {
         this.PowerShell.Commands.Clear();
+        OnWindows(() =>
+        {
+            this.PowerShell
+                .AddCommand("Set-ExecutionPolicy")
+                .AddParameter("ExecutionPolicy", "Unrestricted")
+                .AddStatement();
+        });
         this.PowerShell
-            .AddCommand("Set-ExecutionPolicy")
-            .AddParameter("ExecutionPolicy", "Unrestricted")
-            .AddStatement()
             .AddCommand("Import-Module")
             .AddArgument("./JsonFS.psd1")
             .Invoke();
@@ -81,6 +85,18 @@ public class PowerShellTestBase : IDisposable
             .AddParameter("Root", $"{path}")
             .Invoke();
         this.PowerShell.Commands.Clear();
+    }
+
+    protected static void OnWindows(Action action)
+    {
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            action();
+    }
+
+    protected static void OnUnix(Action action)
+    {
+        if (Environment.OSVersion.Platform == PlatformID.Unix)
+            action();
     }
 
     public JObject ArrangeFileSystem(JObject payload, JsonSchema schema)
@@ -104,10 +120,16 @@ public class PowerShellTestBase : IDisposable
     protected void ArrangeFileSystem(string name, string path, string schemaPath)
     {
         this.PowerShell.Commands.Clear();
+
+        OnWindows(() =>
+        {
+            this.PowerShell
+                .AddCommand("Set-ExecutionPolicy")
+                .AddParameter("ExecutionPolicy", "Unrestricted")
+                .AddStatement();
+        });
+
         this.PowerShell
-            .AddCommand("Set-ExecutionPolicy")
-            .AddParameter("ExecutionPolicy", "Unrestricted")
-            .AddStatement()
             .AddCommand("Import-Module")
             .AddArgument("./JsonFS.psd1")
             .AddStatement()

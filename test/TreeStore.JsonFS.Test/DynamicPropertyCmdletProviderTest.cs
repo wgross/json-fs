@@ -19,11 +19,11 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Remove-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -60,11 +60,11 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Remove-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -104,11 +104,11 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Remove-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -141,15 +141,15 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Copy-ItemProperty")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Destination", @"test:\child")
+            .AddParameter("Path", @"test:/")
+            .AddParameter("Destination", @"test:/child")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -189,15 +189,15 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Copy-ItemProperty")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Destination", @"test:\child")
+            .AddParameter("Path", @"test:/")
+            .AddParameter("Destination", @"test:/child")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -243,15 +243,15 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Copy-ItemProperty")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Destination", @"test:\child")
+            .AddParameter("Path", @"test:/")
+            .AddParameter("Destination", @"test:/child")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -289,15 +289,15 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-ItemProperty")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Destination", @"test:\child")
+            .AddParameter("Path", @"test:/")
+            .AddParameter("Destination", @"test:/child")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -345,15 +345,15 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-ItemProperty")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Destination", @"test:\child")
+            .AddParameter("Path", @"test:/")
+            .AddParameter("Destination", @"test:/child")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -404,15 +404,15 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Move-ItemProperty")
-            .AddParameter("Path", @"test:\")
-            .AddParameter("Destination", @"test:\child")
+            .AddParameter("Path", @"test:/")
+            .AddParameter("Destination", @"test:/child")
             .AddParameter("Name", "data")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\child")
+            .AddParameter("Path", @"test:/child")
             .Invoke()
             .ToArray();
 
@@ -450,12 +450,12 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "newdata")
             .AddParameter("Value", 1)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -490,12 +490,12 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "newdata")
             .AddParameter("Value", 1)
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -532,12 +532,12 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "newdata")
             .AddParameter("Value", 1) // create with an integer -> invalid
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .ToArray();
 
@@ -566,12 +566,12 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "newdata")
             .AddParameter("Value", new int[] { 1, 2, 3 })
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -594,12 +594,12 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("New-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "newdata")
             .AddParameter("Value", new object[] { 1, 2, 3 })
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -627,12 +627,12 @@ public class DynamicPropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Rename-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddParameter("NewName", "newname")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 

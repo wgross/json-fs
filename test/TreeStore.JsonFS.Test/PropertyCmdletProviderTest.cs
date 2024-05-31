@@ -21,7 +21,7 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Get-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", new[] { "value", "array" })
             .Invoke()
             .Single();
@@ -34,8 +34,17 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         Assert.True(result.Property<bool>("PSIsContainer"));
         Assert.Equal("test", result.Property<PSDriveInfo>("PSDrive").Name);
         Assert.Equal("JsonFS", result.Property<ProviderInfo>("PSProvider").Name);
-        Assert.Equal(@"JsonFS\JsonFS::test:\", result.Property<string>("PSPath"));
         Assert.Equal("", result.Property<string>("PSParentPath"));
+
+        OnWindows(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:\", result.Property<string>("PSPath"));
+        });
+
+        OnUnix(() =>
+        {
+            Assert.Equal(@"JsonFS\JsonFS::test:/", result.Property<string>("PSPath"));
+        });
 
         // the property value_skipped is missing in the result
         Assert.DoesNotContain(result.Properties, p => p.Name == "value_skipped");
@@ -56,7 +65,7 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         // fetch only one parameter, but expand value
         var result = this.PowerShell
             .AddCommand("Get-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", new[] { "value" })
             .AddParameter("ExpandValue")
             .Invoke()
@@ -87,11 +96,11 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Clear-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "value")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -130,11 +139,11 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Clear-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "value")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -175,11 +184,11 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
         // ACT
         var result = this.PowerShell
             .AddCommand("Clear-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "value")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -206,12 +215,12 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddParameter("Value", "text")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -243,12 +252,12 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddParameter("Value", "text")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -288,12 +297,12 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddParameter("Value", "text") // this must be a number
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -320,12 +329,12 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "missing")
             .AddParameter("Value", "text")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
@@ -348,13 +357,13 @@ public class PropertyCmdletProviderTest : PowerShellTestBase
 
         // ACT
         var result = this.PowerShell.AddCommand("Set-ItemProperty")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .AddParameter("Name", "data")
             .AddParameter("Value", "text")
             .AddParameter("Force")
             .AddStatement()
             .AddCommand("Get-Item")
-            .AddParameter("Path", @"test:\")
+            .AddParameter("Path", @"test:/")
             .Invoke()
             .Single();
 
